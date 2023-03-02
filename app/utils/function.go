@@ -3,6 +3,7 @@ package utils
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/iancoleman/strcase"
 	"io"
 	"os"
 	"reflect"
@@ -41,6 +42,13 @@ func MapValuesShifter(dest map[string]any, origin map[string]any) map[string]any
 	val := reflect.ValueOf(dest)
 	for _, inp := range val.MapKeys() {
 		key := inp.String()
+		if origin[key] == nil {
+			if origin[strcase.ToCamel(key)] != nil {
+				dest[key] = origin[strcase.ToCamel(key)]
+				continue
+			}
+			continue
+		}
 		dest[key] = origin[key]
 	}
 	return dest

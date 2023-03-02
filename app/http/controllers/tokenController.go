@@ -1,1 +1,160 @@
 package controllers
+
+import (
+	"dolphin/app/tokens"
+	"dolphin/app/utils"
+	"errors"
+	"fmt"
+	"github.com/gin-gonic/gin"
+	"github.com/go-sql-driver/mysql"
+	"net/http"
+	"time"
+)
+
+type accessTokenRequest struct {
+	RefreshToken string `json:"refresh_token" binding:"required"`
+}
+
+type accessTokenResponse struct {
+	AccessToken          string    `json:"access_token"`
+	AccessTokenExpiresAt time.Time `json:"access_token_expires_at"`
+}
+
+func RenewAccessToken(ctx *gin.Context) {
+	// Setup request body
+	var req accessTokenRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", err.Error(), nil))
+		return
+	}
+
+	// Setup and check given token
+	config, err := utils.LoadConfig(".")
+	if err != nil {
+		fmt.Errorf("cannot load config: %w", err)
+		return
+	}
+	tokenMaker, err := tokens.NewJWTMaker(config.TokenSymmetricKey)
+	if err != nil {
+		fmt.Errorf("cannot create token maker: %w", err)
+		return
+	}
+	refreshPayload, err := tokenMaker.VerifyToken(req.RefreshToken)
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, utils.ResponseData("error", err.Error(), nil))
+		return
+	}
+
+	// Get refresh token data from database
+	var token map[string]any
+	tokenQuery := utils.DB.Table("tokens").Where("refresh_token = ?", req.RefreshToken).Take(&token)
+
+	// Check token validity
+	if tokenQuery.Error != nil {
+		var mysqlErr *mysql.MySQLError
+		if errors.As(tokenQuery.Error, &mysqlErr) && mysqlErr.Number == 1062 {
+			ctx.JSON(http.StatusUnauthorized, utils.ResponseData("error", tokenQuery.Error.Error(), nil))
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", tokenQuery.Error.Error(), nil))
+		return
+	}
+
+	if token["is_blocked"] == int8(1) {
+		ctx.JSON(http.StatusUnauthorized, utils.ResponseData("error", "blocked token", nil))
+		return
+	}
+
+	if int32(token["user_id"].(int64)) != refreshPayload.UserId {
+		ctx.JSON(http.StatusUnauthorized, utils.ResponseData("error", "incorrect token user", nil))
+		return
+	}
+	if token["refresh_token"] != req.RefreshToken {
+		ctx.JSON(http.StatusUnauthorized, utils.ResponseData("error", "mismatched token token", nil))
+		return
+	}
+	if time.Now().After(token["expires_at"].(time.Time)) {
+		ctx.JSON(http.StatusUnauthorized, utils.ResponseData("error", "expired token", nil))
+		return
+	}
+
+	// Generate new access token
+	accessToken, accessPayload, err := tokenMaker.CreateToken(
+		refreshPayload.UserId,
+		config.AccessTokenDuration,
+	)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", err.Error(), nil))
+		return
+	}
+
+	// Setup and send response
+	rsp := accessTokenResponse{
+		AccessToken:          accessToken,
+		AccessTokenExpiresAt: accessPayload.ExpiredAt,
+	}
+
+	ctx.JSON(http.StatusOK, utils.ResponseData("success", "refresh token successfully", rsp))
+}
+
+func BlockRefreshToken(ctx *gin.Context) {
+	// Setup request body
+	var req accessTokenRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", err.Error(), nil))
+		return
+	}
+
+	// Get token auth payload
+	authorizationPayload, _ := ctx.Get("authorization_payload")
+
+	// Update blocked token on db
+	tokenQuery := utils.DB.Table("tokens").
+		Where("user_id", authorizationPayload.(*tokens.Payload).UserId).
+		Where("refresh_token = ?", req.RefreshToken).
+		Update("is_blocked", true)
+
+	// Handle query error
+	if tokenQuery.Error != nil {
+		if tokenQuery.Error.Error() == "record not found" {
+			ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", "token data not found", nil))
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", tokenQuery.Error.Error(), nil))
+		return
+	}
+
+	// Send success response to client
+	ctx.JSON(http.StatusOK, utils.ResponseData("success", "blocking token successfully", nil))
+}
+
+func BlockAllRefreshToken(ctx *gin.Context) {
+	// Setup request body
+	var req accessTokenRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", err.Error(), nil))
+		return
+	}
+
+	// Get token auth payload
+	authorizationPayload, _ := ctx.Get("authorization_payload")
+
+	// Update blocked token on db
+	tokenQuery := utils.DB.Table("tokens").
+		Where("user_id", authorizationPayload.(*tokens.Payload).UserId).
+		Where("refresh_token = ?", req.RefreshToken).
+		Update("is_blocked", true)
+
+	// Handle query error
+	if tokenQuery.Error != nil {
+		if tokenQuery.Error.Error() == "record not found" {
+			ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", "token data not found", nil))
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", tokenQuery.Error.Error(), nil))
+		return
+	}
+
+	// Send success response to client
+	ctx.JSON(http.StatusOK, utils.ResponseData("success", "blocking token successfully", nil))
+}

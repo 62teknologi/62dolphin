@@ -1,4 +1,4 @@
-package models
+package utils
 
 import (
 	"gorm.io/driver/mysql"
@@ -13,10 +13,10 @@ func ConnectDatabase(dbSource string) {
 		panic("Failed to connect to database!")
 	}
 
-	err = db.Debug().AutoMigrate(User{}, Token{})
-	if err != nil {
-		panic("migration error")
-	}
+	//err = db.Debug().AutoMigrate(User{}, Token{})
+	//if err != nil {
+	//	panic("migration error")
+	//}
 
 	DB = db
 }

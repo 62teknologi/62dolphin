@@ -3,7 +3,6 @@ package main
 import (
 	"dolphin/app/http/controllers"
 	"dolphin/app/http/middlewares"
-	"dolphin/app/models"
 	"dolphin/app/tokens"
 	"dolphin/app/utils"
 	"fmt"
@@ -17,24 +16,68 @@ func main() {
 		return
 	}
 
-	models.ConnectDatabase(config.DBSource)
-
-	r := gin.Default()
-	r.POST("/auth/sign-in", controllers.SignIn)
-	r.GET("/users", controllers.FindUsers)
-	r.POST("/users", controllers.CreateUser)
-	r.GET("/users/:id", controllers.FindUser)
+	utils.ConnectDatabase(config.DBSource)
 
 	tokenMaker, err := tokens.NewJWTMaker(config.TokenSymmetricKey)
 	if err != nil {
 		fmt.Printf("cannot create token maker: %w", err)
 		return
 	}
-	authorized := r.Group("/").Use(middlewares.AuthMiddleware(tokenMaker))
-	authorized.PUT("/users/:id", controllers.UpdateUser)
-	authorized.DELETE("/users/:id", controllers.DeleteUser)
 
-	err = r.Run()
+	r := gin.Default()
+
+	apiV1 := r.Group("/api/v1")
+	{
+		/*
+			Auth
+		*/
+		apiV1.POST("/auth/sign-in", controllers.SignIn)
+		apiV1.POST("/auth/sign-up", controllers.CreateUser)
+
+		apiV1.GET("/auth/google", controllers.GoogleLogin)
+		apiV1.GET("/auth/callback/google", controllers.GoogleCallback)
+
+		apiV1.GET("/auth/facebook", controllers.FacebookLogin)
+		apiV1.GET("/auth/callback/facebook", controllers.FacebookCallback)
+
+		apiV1.GET("/auth/microsoft", controllers.MicrosoftLogin)
+		apiV1.GET("/auth/callback/microsoft", controllers.MicrosoftCallback)
+
+		/*
+			Tokens
+		*/
+		apiV1.POST("/tokens/refresh", controllers.RenewAccessToken)
+
+		/*
+			Passwords
+		*/
+		apiV1.POST("/passwords/forgot-password", controllers.ForgotPassword)
+		apiV1.PATCH("/passwords/reset-password/:token", controllers.ResetPassword)
+
+		/*
+			Users
+		*/
+		apiV1.GET("/users", controllers.FindUsers)
+		apiV1.POST("/users", controllers.CreateUser)
+		apiV1.GET("/users/:id", controllers.FindUser)
+		apiV1.POST("/users/verify", controllers.VerifyUser)
+	}
+
+	authorizedV1 := r.Group("/api/v1").Use(middlewares.AuthMiddleware(tokenMaker))
+	{
+		/*
+			Tokens
+		*/
+		authorizedV1.POST("/tokens/block-token", controllers.BlockRefreshToken)
+
+		/*
+			Users
+		*/
+		authorizedV1.PUT("/users/:id", controllers.UpdateUser)
+		authorizedV1.DELETE("/users/:id", controllers.DeleteUser)
+	}
+
+	err = r.Run(config.HTTPServerAddress)
 	if err != nil {
 		fmt.Printf("cannot run server: %w", err)
 		return
