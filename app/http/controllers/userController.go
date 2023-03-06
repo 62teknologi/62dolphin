@@ -2,14 +2,11 @@ package controllers
 
 import (
 	"dolphin/app/utils"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/dbssensei/ordentmarketplace/util"
 	"github.com/go-sql-driver/mysql"
-	"io/ioutil"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
@@ -41,45 +38,29 @@ func FindUser(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, utils.ResponseData("success", "find user successfully", customResponse))
 }
 
-func FindUsers(c *gin.Context) {
-	var results []map[string]interface{}
-	var collection []map[string]interface{}
-
-	// map query results to var results
-	err := utils.DB.Table("users").Find(&results).Error
-
-	if len(results) == 0 {
-		fmt.Println(err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Record not found!"})
+func FindUsers(ctx *gin.Context) {
+	var users []map[string]interface{}
+	err := utils.DB.Table("users").Find(&users).Error
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", err.Error(), nil))
 		return
 	}
 
-	// build transformer from json file
-	jsonFile, err := os.Open("transformers/user/collection.json")
+	var customResponses []map[string]any
+	for _, user := range users {
+		// Setup output to client
+		customResponse, _ := utils.JsonFileParser("transformers/response/user/get.json")
+		customUser := customResponse["user"]
 
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	defer jsonFile.Close()
-
-	byteValue, _ := ioutil.ReadAll(jsonFile)
-
-	var transformer map[string]interface{}
-	json.Unmarshal([]byte(byteValue), &transformer)
-
-	// remap results to collection
-	for keyUser, result := range results {
-		collection = append(collection, map[string]interface{}{})
-
-		// remap result to transformer
-		for key := range transformer {
-			collection[keyUser][key] = result[key]
+		utils.MapValuesShifter(customResponse, user)
+		if customUser != nil {
+			utils.MapValuesShifter(customUser.(map[string]any), user)
 		}
+		customResponses = append(customResponses, customResponse)
 	}
 
-	// return collection of transformed result
-	c.JSON(http.StatusOK, collection)
+	// return collection of transformed user
+	ctx.JSON(http.StatusOK, utils.ResponseData("success", "find all users successfully", customResponses))
 }
 
 type otpVerificationParams struct {

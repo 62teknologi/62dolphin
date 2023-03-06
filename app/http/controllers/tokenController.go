@@ -11,6 +11,44 @@ import (
 	"time"
 )
 
+type accessTokenVerifyRequest struct {
+	AccessToken string `json:"access_token" binding:"required"`
+}
+
+func VerifyAccessToken(ctx *gin.Context) {
+	// Setup request body
+	var req accessTokenVerifyRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusUnauthorized, utils.ResponseData("error", err.Error(), nil))
+		return
+	}
+
+	fmt.Println("req", req)
+
+	// Setup and check given token
+	config, err := utils.LoadConfig(".")
+	if err != nil {
+		fmt.Errorf("cannot load config: %w", err)
+		return
+	}
+
+	tokenMaker, err := tokens.NewJWTMaker(config.TokenSymmetricKey)
+	if err != nil {
+		fmt.Errorf("cannot create token maker: %w", err)
+		return
+	}
+
+	payload, err := tokenMaker.VerifyToken(req.AccessToken)
+	fmt.Println("payload", payload)
+	fmt.Println("err", err)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, utils.ResponseData("error", err.Error(), nil))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, utils.ResponseData("success", "verify token successfully", payload))
+}
+
 type accessTokenRequest struct {
 	RefreshToken string `json:"refresh_token" binding:"required"`
 }

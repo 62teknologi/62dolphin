@@ -7,6 +7,7 @@ import (
 	"dolphin/app/utils"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"net/http"
 )
 
 func main() {
@@ -25,6 +26,10 @@ func main() {
 	}
 
 	r := gin.Default()
+
+	r.GET("/health", func(c *gin.Context) {
+		c.JSON(http.StatusOK, utils.ResponseData("success", "Server running well", nil))
+	})
 
 	apiV1 := r.Group("/api/v1")
 	{
@@ -46,6 +51,7 @@ func main() {
 		/*
 			Tokens
 		*/
+		apiV1.POST("/tokens/verify", controllers.VerifyAccessToken)
 		apiV1.POST("/tokens/refresh", controllers.RenewAccessToken)
 
 		/*
