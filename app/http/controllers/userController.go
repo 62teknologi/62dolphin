@@ -16,7 +16,7 @@ import (
 func FindUser(ctx *gin.Context) {
 	// query to find user
 	var user map[string]interface{}
-	err := utils.DB.Table("users").Where("is_active", true).Where("id = ?", ctx.Param("id")).Take(&user).Error
+	err := utils.DB.Table("user").Where("active", true).Where("id = ?", ctx.Param("id")).Take(&user).Error
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", err.Error(), nil))
 		return
@@ -40,7 +40,7 @@ func FindUser(ctx *gin.Context) {
 
 func FindUsers(ctx *gin.Context) {
 	var users []map[string]interface{}
-	err := utils.DB.Table("users").Find(&users).Error
+	err := utils.DB.Table("user").Find(&users).Error
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", err.Error(), nil))
 		return
@@ -97,14 +97,14 @@ func CreateUser(ctx *gin.Context) {
 
 	// Set default fields
 	input["password"] = hashedPassword
-	input["created_at"] = time.Now()
-	input["updated_at"] = time.Now()
+	//input["created_at"] = time.Now()
+	//input["updated_at"] = time.Now()
 	if otpOptions["otp"] == true {
-		input["is_active"] = false
+		input["active"] = false
 	}
 
 	// Create and handle query error
-	createUserQuery := utils.DB.Table("users").Create(input)
+	createUserQuery := utils.DB.Table("user").Create(input)
 	if createUserQuery.Error != nil {
 		var mysqlErr *mysql.MySQLError
 		if errors.As(createUserQuery.Error, &mysqlErr) && mysqlErr.Number == 1062 {
@@ -117,6 +117,7 @@ func CreateUser(ctx *gin.Context) {
 
 	// Generate and create OTP if otp option is active
 	if otpOptions["otp"] == true {
+		fmt.Println("otpOptions", otpOptions)
 		otpCode, _ := utils.GenerateOTP(8)
 		otpParams := map[string]any{
 			"type":       otpOptions["otp_method"],
@@ -141,6 +142,7 @@ func CreateUser(ctx *gin.Context) {
 		}
 
 		// Send email verification
+		fmt.Printf("%+v\n", otpOptions)
 		go func() {
 			utils.EmailSender("verify_user.html", otpVerificationParams{OtpReceiver: otpOptions["otp_receiver"].(string), OtpCode: otpCode}, receiverList)
 		}()
@@ -169,19 +171,23 @@ func VerifyUser(ctx *gin.Context) {
 		return
 	}
 
-	if otp["expires_at"].(time.Time).Unix() < time.Now().Unix() {
-		ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", "otp expired", nil))
-		return
-	}
+	//if otp["expires_at"].(time.Time).Unix() < time.Now().Unix() {
+	//	ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", "otp expired", nil))
+	//	return
+	//}
 
 	// Update and handle query error
 	params := map[string]any{
-		"is_active":  true,
-		"updated_at": time.Now(),
+		"active": true,
+		//"updated_at": time.Now(),
 	}
+	fmt.Println("input", input)
 
-	updateResultQuery := utils.DB.Table("users").Where(fmt.Sprintf("%v = ?", input["method"]), input["receiver"]).Updates(&params)
-
+	var user map[string]any
+	utils.DB.Table("user").Where(fmt.Sprintf("%v = ?", input["method"]), input["receiver"]).Take(&user)
+	fmt.Println("user", user)
+	updateResultQuery := utils.DB.Table("user").Where(fmt.Sprintf("%v = ?", input["method"]), input["receiver"]).Updates(&params)
+	fmt.Printf("%+v", updateResultQuery)
 	if updateResultQuery.Error != nil {
 		ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", updateResultQuery.Error.Error(), nil))
 		return
@@ -214,10 +220,10 @@ func UpdateUser(ctx *gin.Context) {
 	// TODO verify updated data with otp
 
 	// Set default fields
-	input["updated_at"] = time.Now()
+	//input["updated_at"] = time.Now()
 
 	// Update and handle query error
-	updateResultQuery := utils.DB.Table("users").Where("id = ?", ctx.Param("id")).Updates(input)
+	updateResultQuery := utils.DB.Table("user").Where("id = ?", ctx.Param("id")).Updates(input)
 	if updateResultQuery.Error != nil {
 		var mysqlErr *mysql.MySQLError
 		if errors.As(updateResultQuery.Error, &mysqlErr) && mysqlErr.Number == 1062 {

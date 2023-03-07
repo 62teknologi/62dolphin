@@ -121,7 +121,7 @@ func SignIn(ctx *gin.Context) {
 
 	// Query database and additional query
 	var user map[string]any
-	utils.DB.Table("users").Where("is_active = true").Where(utils.DB.Where("email = ?", input["email"]).Or("username = ?", input["username"])).Take(&user)
+	utils.DB.Table("user").Where("active = true").Where(utils.DB.Where("email = ?", input["email"])).Take(&user)
 
 	if user["id"] == nil {
 		ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", "invalid email or password", nil))
@@ -210,7 +210,7 @@ func ForgotPassword(ctx *gin.Context) {
 
 	// Check if user exist in db
 	var user map[string]any
-	utils.DB.Table("users").Where(input["method"].(string)+" = ?", input["receiver"]).Take(&user)
+	utils.DB.Table("user").Where(input["method"].(string)+" = ?", input["receiver"]).Take(&user)
 
 	if user["id"] == nil {
 		ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", "invalid user", nil))
@@ -305,7 +305,7 @@ func ResetPassword(ctx *gin.Context) {
 	}
 
 	var user map[string]any
-	utils.DB.Table("users").Where(splitToken[0]+" = ?", splitToken[2]).Update("password", hashedPassword)
+	utils.DB.Table("user").Where(splitToken[0]+" = ?", splitToken[2]).Update("password", hashedPassword)
 	fmt.Println(user)
 	fmt.Println(hashedPassword)
 
