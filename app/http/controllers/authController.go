@@ -121,7 +121,7 @@ func SignIn(ctx *gin.Context) {
 
 	// Query database and additional query
 	var user map[string]any
-	utils.DB.Table("user").Where("active = true").Where(utils.DB.Where("email = ?", input["email"])).Take(&user)
+	utils.DB.Table("user").Where(utils.DB.Where("email = ?", input["email"])).Take(&user)
 
 	if user["id"] == nil {
 		ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", "invalid email or password", nil))
