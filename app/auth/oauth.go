@@ -13,3 +13,11 @@ type OAuth interface {
 	// LoginCallback handle user authentication after login success
 	LoginCallback(ctx *gin.Context) (*oauth2.Token, error)
 }
+
+type OAuthProfile struct {
+	Name     string `json:"name"`
+	Email    string `json:"email"`
+	Phone    string `json:"phone"`
+	Birthday string `json:"birthday"`
+	Photo    string `json:"photo"`
+}

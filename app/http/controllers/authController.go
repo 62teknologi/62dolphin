@@ -22,37 +22,65 @@ func GoogleLogin(ctx *gin.Context) {
 }
 
 func GoogleCallback(ctx *gin.Context) {
+	config, err := utils.LoadConfig(".")
+	if err != nil {
+		fmt.Errorf("cannot load config: %w", err)
+		return
+	}
+
 	token, err := googleAdapter.LoginCallback(ctx)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", "Error getting token from Google", nil))
 		return
 	}
 
-	email, err := getEmailAddressFromGoogle(ctx, token)
+	profile, err := getProfileFromGoogle(ctx, token)
 	if err != nil {
-		fmt.Println("error", err)
+		ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", "Error getting data user from Google", nil))
+		return
 	}
-	fmt.Println("email", email)
 
-	/*
-		TODO : Do something with the token, such as getting the user's email address
-			using the Google API and redirect to client register page
-	*/
-	fmt.Println("Google token: %+v", token)
+	var googleProfile auth.OAuthProfile
+
+	if profile.Names != nil {
+		googleProfile.Name = profile.Names[0].DisplayName
+	}
+	if profile.EmailAddresses != nil {
+		googleProfile.Email = profile.EmailAddresses[0].Value
+	}
+	if profile.PhoneNumbers != nil {
+		googleProfile.Phone = profile.PhoneNumbers[0].Value
+	}
+	if profile.Birthdays != nil {
+		googleProfile.Birthday = profile.Birthdays[0].Text
+	}
+	if profile.Photos != nil {
+		googleProfile.Photo = profile.Photos[0].Url
+	}
+
+	redirectUrl := fmt.Sprintf("%s/auth/google/callback?name=%s&email=%s&phone=%s&birthday=%s&photo=%s",
+		config.MonolithUrl+"/api/v1",
+		googleProfile.Name,
+		googleProfile.Email,
+		googleProfile.Phone,
+		googleProfile.Birthday,
+		googleProfile.Photo,
+	)
+
+	ctx.Redirect(http.StatusTemporaryRedirect, redirectUrl)
 }
 
-func getEmailAddressFromGoogle(ctx *gin.Context, token *oauth2.Token) (string, error) {
+func getProfileFromGoogle(ctx *gin.Context, token *oauth2.Token) (*people.Person, error) {
 	client := oauth2.NewClient(ctx, oauth2.StaticTokenSource(token))
 	service, err := people.NewService(ctx, option.WithHTTPClient(client))
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	profile, err := service.People.Get("people/me").PersonFields("names,emailAddresses,phoneNumbers").Do()
+	profile, err := service.People.Get("people/me").PersonFields("names,emailAddresses,phoneNumbers,birthdays,photos").Do()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	fmt.Println("profile", profile)
-	return profile.EmailAddresses[0].Value, nil
+	return profile, nil
 }
 
 var facebookAdapter = auth.NewFacebookOAuth()

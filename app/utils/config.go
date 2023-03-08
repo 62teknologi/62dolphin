@@ -12,6 +12,7 @@ type Config struct {
 	DBSource                  string        `mapstructure:"DB_SOURCE"`
 	TokenSymmetricKey         string        `mapstructure:"TOKEN_SYMMETRIC_KEY"`
 	HTTPServerAddress         string        `mapstructure:"HTTP_SERVER_ADDRESS"`
+	MonolithUrl               string        `mapstructure:"MONOLITH_URL"`
 	AccessTokenDuration       time.Duration `mapstructure:"ACCESS_TOKEN_DURATION"`
 	RefreshTokenDuration      time.Duration `mapstructure:"REFRESH_TOKEN_DURATION"`
 	EmailSMTPHost             string        `mapstructure:"EMAIL_SMTP_HOST"`
