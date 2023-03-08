@@ -40,7 +40,8 @@ func main() {
 		apiV1.POST("/auth/sign-up", controllers.CreateUser)
 
 		apiV1.GET("/auth/google", controllers.GoogleLogin)
-		apiV1.GET("/auth/callback/google", controllers.GoogleCallback)
+		// TODO need to change to apiV1
+		r.GET("/auth/callback/google", controllers.GoogleCallback)
 
 		apiV1.GET("/auth/facebook", controllers.FacebookLogin)
 		apiV1.GET("/auth/callback/facebook", controllers.FacebookCallback)
