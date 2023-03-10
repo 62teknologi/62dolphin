@@ -49,6 +49,79 @@ func VerifyAccessToken(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, utils.ResponseData("success", "verify token successfully", payload))
 }
 
+type createAccessTokenRequest struct {
+	UserId int32 `json:"user_id" binding:"required"`
+}
+
+func CreateAccessToken(ctx *gin.Context) {
+	// Setup request body
+	var req createAccessTokenRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", err.Error(), nil))
+		return
+	}
+
+	config, err := utils.LoadConfig(".")
+	if err != nil {
+		fmt.Errorf("cannot load config: %w", err)
+		return
+	}
+
+	tokenMaker, err := tokens.NewJWTMaker(config.TokenSymmetricKey)
+	if err != nil {
+		fmt.Errorf("cannot create token maker: %w", err)
+		return
+	}
+
+	accessToken, accessPayload, err := tokenMaker.CreateToken(
+		req.UserId,
+		config.AccessTokenDuration,
+	)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", err.Error(), nil))
+		return
+	}
+
+	refreshToken, refreshPayload, err := tokenMaker.CreateToken(
+		req.UserId,
+		config.RefreshTokenDuration,
+	)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", err.Error(), nil))
+		return
+	}
+
+	// Store sessions data to DB
+	params := map[string]any{
+		"id":            refreshPayload.Id,
+		"user_id":       req.UserId,
+		"refresh_token": refreshToken,
+		"is_blocked":    false,
+		"platform_id":   0,
+		"expires_at":    refreshPayload.ExpiredAt,
+		"created_at":    time.Now(),
+		"updated_at":    time.Now(),
+	}
+
+	session := utils.DB.Table("tokens").Create(&params)
+	if session.Error != nil {
+		ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", fmt.Sprintf("%v", session.Error.Error()), nil))
+		return
+	}
+
+	// Setup output to client
+	res := map[string]any{
+		"session_id":               params["id"],
+		"access_token":             accessToken,
+		"access_token_expires_at":  accessPayload.ExpiredAt,
+		"refresh_token":            refreshToken,
+		"refresh_token_expires_at": refreshPayload.ExpiredAt,
+		"platform_id":              params["platform_id"],
+	}
+
+	ctx.JSON(http.StatusOK, utils.ResponseData("success", "create token successfully", res))
+}
+
 type accessTokenRequest struct {
 	RefreshToken string `json:"refresh_token" binding:"required"`
 }
