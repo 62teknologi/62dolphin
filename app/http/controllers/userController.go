@@ -4,11 +4,12 @@ import (
 	"dolphin/app/utils"
 	"errors"
 	"fmt"
-	"github.com/dbssensei/ordentmarketplace/util"
-	"github.com/go-sql-driver/mysql"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/dbssensei/ordentmarketplace/util"
+	"github.com/go-sql-driver/mysql"
 
 	"github.com/gin-gonic/gin"
 )
@@ -16,7 +17,7 @@ import (
 func FindUser(ctx *gin.Context) {
 	// query to find user
 	var user map[string]interface{}
-	err := utils.DB.Table("user").Where("active", true).Where("id = ?", ctx.Param("id")).Take(&user).Error
+	err := utils.DB.Table("users").Where("active", true).Where("id = ?", ctx.Param("id")).Take(&user).Error
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", err.Error(), nil))
 		return
@@ -40,7 +41,7 @@ func FindUser(ctx *gin.Context) {
 
 func FindUsers(ctx *gin.Context) {
 	var users []map[string]interface{}
-	err := utils.DB.Table("user").Find(&users).Error
+	err := utils.DB.Table("users").Find(&users).Error
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", err.Error(), nil))
 		return
@@ -104,7 +105,7 @@ func CreateUser(ctx *gin.Context) {
 	}
 
 	// Create and handle query error
-	createUserQuery := utils.DB.Table("user").Create(input)
+	createUserQuery := utils.DB.Table("users").Create(input)
 	if createUserQuery.Error != nil {
 		var mysqlErr *mysql.MySQLError
 		if errors.As(createUserQuery.Error, &mysqlErr) && mysqlErr.Number == 1062 {
@@ -184,9 +185,9 @@ func VerifyUser(ctx *gin.Context) {
 	fmt.Println("input", input)
 
 	var user map[string]any
-	utils.DB.Table("user").Where(fmt.Sprintf("%v = ?", input["method"]), input["receiver"]).Take(&user)
+	utils.DB.Table("users").Where(fmt.Sprintf("%v = ?", input["method"]), input["receiver"]).Take(&user)
 	fmt.Println("user", user)
-	updateResultQuery := utils.DB.Table("user").Where(fmt.Sprintf("%v = ?", input["method"]), input["receiver"]).Updates(&params)
+	updateResultQuery := utils.DB.Table("users").Where(fmt.Sprintf("%v = ?", input["method"]), input["receiver"]).Updates(&params)
 	fmt.Printf("%+v", updateResultQuery)
 	if updateResultQuery.Error != nil {
 		ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", updateResultQuery.Error.Error(), nil))
@@ -223,7 +224,7 @@ func UpdateUser(ctx *gin.Context) {
 	//input["updated_at"] = time.Now()
 
 	// Update and handle query error
-	updateResultQuery := utils.DB.Table("user").Where("id = ?", ctx.Param("id")).Updates(input)
+	updateResultQuery := utils.DB.Table("users").Where("id = ?", ctx.Param("id")).Updates(input)
 	if updateResultQuery.Error != nil {
 		var mysqlErr *mysql.MySQLError
 		if errors.As(updateResultQuery.Error, &mysqlErr) && mysqlErr.Number == 1062 {
