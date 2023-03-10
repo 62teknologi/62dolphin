@@ -49,9 +49,13 @@ func main() {
 		apiV1.GET("/auth/microsoft", controllers.MicrosoftLogin)
 		apiV1.GET("/auth/callback/microsoft", controllers.MicrosoftCallback)
 
+		apiV1.GET("/auth/privy", controllers.PrivyLogin)
+		apiV1.GET("/auth/privy/callback", controllers.PrivyCallback)
+
 		/*
 			Tokens
 		*/
+		apiV1.POST("/tokens/create", controllers.CreateAccessToken)
 		apiV1.POST("/tokens/verify", controllers.VerifyAccessToken)
 		apiV1.POST("/tokens/refresh", controllers.RenewAccessToken)
 

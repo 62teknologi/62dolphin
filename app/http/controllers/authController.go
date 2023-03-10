@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/dbssensei/ordentmarketplace/util"
 	"github.com/gin-gonic/gin"
+	"github.com/goccy/go-json"
 	"golang.org/x/oauth2"
 	"google.golang.org/api/option"
 	"google.golang.org/api/people/v1"
@@ -338,4 +339,65 @@ func ResetPassword(ctx *gin.Context) {
 	fmt.Println(hashedPassword)
 
 	ctx.JSON(http.StatusOK, utils.ResponseData("success", "reset password successfully", nil))
+}
+
+var privyAdapter = auth.NewPrivyOAuth()
+
+func PrivyLogin(ctx *gin.Context) {
+	ctx.Redirect(http.StatusTemporaryRedirect, privyAdapter.GenerateLoginURL())
+}
+
+func PrivyCallback(ctx *gin.Context) {
+	config, err := utils.LoadConfig(".")
+	if err != nil {
+		fmt.Errorf("cannot load config: %w", err)
+		return
+	}
+
+	token, err := privyAdapter.LoginCallback(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", "Error getting token from Privy", nil))
+		return
+	}
+
+	profile, err := getProfileFromPrivy(config, token)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", "Error getting data user from Privy", nil))
+		return
+	}
+
+	profileJson, _ := json.Marshal(profile)
+	redirectUrl := fmt.Sprintf("%s/auth/privy/callback?token=%v", config.MonolithUrl+"/api/v1", utils.Encode(string(profileJson)))
+
+	ctx.Redirect(http.StatusTemporaryRedirect, redirectUrl)
+}
+
+func getProfileFromPrivy(config utils.Config, token *oauth2.Token) (map[string]any, error) {
+	// create HTTP request with POST method and request body
+	req, err := http.NewRequest("GET", config.PrivyAuthGetUserExchangeUrl, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// set request headers
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token.AccessToken)
+
+	// send HTTP request
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	// read HTTP response body
+	var response map[string]any
+	err = json.NewDecoder(resp.Body).Decode(&response)
+	if err != nil {
+		return nil, err
+	}
+
+	// print HTTP response status code and body
+	return response, nil
 }
