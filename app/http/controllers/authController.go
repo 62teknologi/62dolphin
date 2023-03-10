@@ -6,6 +6,7 @@ import (
 	"dolphin/app/utils"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -163,8 +164,9 @@ func SignIn(ctx *gin.Context) {
 		return
 	}
 
+	uId, _ := strconv.ParseInt(fmt.Sprintf("%v", user["id"]), 10, 32)
 	accessToken, accessPayload, err := tokenMaker.CreateToken(
-		user["id"].(int32),
+		int32(uId),
 		config.AccessTokenDuration,
 	)
 	if err != nil {
@@ -173,7 +175,7 @@ func SignIn(ctx *gin.Context) {
 	}
 
 	refreshToken, refreshPayload, err := tokenMaker.CreateToken(
-		user["id"].(int32),
+		int32(uId),
 		config.RefreshTokenDuration,
 	)
 	if err != nil {
@@ -184,7 +186,7 @@ func SignIn(ctx *gin.Context) {
 	// Store sessions data to DB
 	params := map[string]any{
 		"id":            refreshPayload.Id,
-		"user_id":       user["id"].(int32),
+		"user_id":       int32(uId),
 		"refresh_token": refreshToken,
 		"platform_id":   int32(input["platform_id"].(float64)),
 		"is_blocked":    false,
