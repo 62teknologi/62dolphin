@@ -1,8 +1,9 @@
 package utils
 
 import (
-	"github.com/spf13/viper"
 	"time"
+
+	"github.com/spf13/viper"
 )
 
 // Config stores all configuration of the application.
@@ -47,7 +48,8 @@ func LoadConfig(path string) (config Config, err error) {
 	viper.SetDefault("DB_SOURCE", "root:password@tcp(127.0.0.1:3306)/dolphin?charset=utf8mb4&parseTime=True&loc=Local")
 	viper.SetDefault("HTTP_SERVER_ADDRESS", "0.0.0.0:8080")
 
-	viper.SetDefault("TOKEN_SYMMETRIC_KEY", "super_secret_keys")
+	//super secret key
+	viper.SetDefault("TOKEN_SYMMETRIC_KEY", "12345678901234567890123456789012")
 	viper.SetDefault("ACCESS_TOKEN_DURATION", "24h")
 	viper.SetDefault("REFRESH_TOKEN_DURATION", "8760h")
 
