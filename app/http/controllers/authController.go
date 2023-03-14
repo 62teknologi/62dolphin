@@ -371,7 +371,8 @@ func PrivyCallback(ctx *gin.Context) {
 	}
 
 	profileJson, _ := json.Marshal(profile)
-	fmt.Println("profileJson", profileJson)
+	fmt.Println("profileJson", string(profileJson))
+	fmt.Println("config.MonolithUrl", config.MonolithUrl)
 	redirectUrl := fmt.Sprintf("%s/auth/privy/callback?token=%v", config.MonolithUrl+"/api/v1", utils.Encode(string(profileJson)))
 
 	ctx.Redirect(http.StatusTemporaryRedirect, redirectUrl)
