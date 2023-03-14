@@ -365,11 +365,13 @@ func PrivyCallback(ctx *gin.Context) {
 
 	profile, err := getProfileFromPrivy(config, token)
 	if err != nil {
+		fmt.Println("ERR GETPROFILE", err)
 		ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", "Error getting data user from Privy", nil))
 		return
 	}
 
 	profileJson, _ := json.Marshal(profile)
+	fmt.Println("profileJson", profileJson)
 	redirectUrl := fmt.Sprintf("%s/auth/privy/callback?token=%v", config.MonolithUrl+"/api/v1", utils.Encode(string(profileJson)))
 
 	ctx.Redirect(http.StatusTemporaryRedirect, redirectUrl)
