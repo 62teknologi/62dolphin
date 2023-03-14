@@ -17,7 +17,7 @@ import (
 func FindUser(ctx *gin.Context) {
 	// query to find user
 	var user map[string]interface{}
-	err := utils.DB.Table("users").Where("active", true).Where("id = ?", ctx.Param("id")).Take(&user).Error
+	err := utils.DB.Table("users").Where("is_active", true).Where("id = ?", ctx.Param("id")).Take(&user).Error
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", err.Error(), nil))
 		return
@@ -101,7 +101,7 @@ func CreateUser(ctx *gin.Context) {
 	//input["created_at"] = time.Now()
 	//input["updated_at"] = time.Now()
 	if otpOptions["otp"] == true {
-		input["active"] = false
+		input["is_active"] = false
 	}
 
 	// Create and handle query error
@@ -179,7 +179,7 @@ func VerifyUser(ctx *gin.Context) {
 
 	// Update and handle query error
 	params := map[string]any{
-		"active": true,
+		"is_active": true,
 		//"updated_at": time.Now(),
 	}
 	fmt.Println("input", input)
