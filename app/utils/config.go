@@ -48,7 +48,7 @@ func LoadConfig(path string) (config Config, err error) {
 	viper.SetDefault("ENVIRONMENT", "development")
 	viper.SetDefault("DB_SOURCE", "root:password@tcp(127.0.0.1:3306)/dolphin?charset=utf8mb4&parseTime=True&loc=Local")
 	viper.SetDefault("HTTP_SERVER_ADDRESS", "0.0.0.0:8080")
-	viper.SetDefault("MONOLITH_URL", "https://monolith.com")
+	viper.SetDefault("MONOLITH_URL", "http://localhost:8000")
 
 	//super secret key
 	viper.SetDefault("TOKEN_SYMMETRIC_KEY", "12345678901234567890123456789012")
