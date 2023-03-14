@@ -33,6 +33,7 @@ type Config struct {
 	MicrosoftAuthTenantId       string        `mapstructure:"MICROSOFT_AUTH_TENANT_ID"`
 	PrivyAuthClientId           string        `mapstructure:"PRIVY_AUTH_CLIENT_ID"`
 	PrivyAuthClientSecret       string        `mapstructure:"PRIVY_AUTH_CLIENT_SECRET"`
+	PrivyAuthUrl                string        `mapstructure:"PRIVY_AUTH_URL"`
 	PrivyAuthRedirectUrl        string        `mapstructure:"PRIVY_AUTH_REDIRECT_URL"`
 	PrivyAuthTokenExchangeUrl   string        `mapstructure:"PRIVY_AUTH_TOKEN_EXCHANGE_URL"`
 	PrivyAuthGetUserExchangeUrl string        `mapstructure:"PRIVY_AUTH_GET_USER_URL"`
@@ -71,7 +72,10 @@ func LoadConfig(path string) (config Config, err error) {
 	viper.SetDefault("MicrosoftAuthTenantId", "1234abcd!@#$1234")
 	viper.SetDefault("PrivyAuthClientId", "1234abcd!@#$1234")
 	viper.SetDefault("PrivyAuthClientSecret", "1234abcd!@#$1234")
-	viper.SetDefault("PrivyAuthRedirectUrl", "https://dolphin.com/auth/callback/microsoft")
+	viper.SetDefault("PrivyAuthRedirectUrl", "https://dolphin.com/auth/callback/privy")
+	viper.SetDefault("PrivyAuthUrl", "https://dolphin.com/auth/callback/privy")
+	viper.SetDefault("PrivyAuthTokenExchangeUrl", "https://dolphin.com/auth/callback/privy")
+	viper.SetDefault("PrivyAuthGetUserExchangeUrl", "https://dolphin.com/auth/callback/privy")
 
 	viper.AutomaticEnv()
 

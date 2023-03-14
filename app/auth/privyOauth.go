@@ -20,7 +20,7 @@ func NewPrivyOAuth() *PrivyOAuth {
 			RedirectURL:  config.PrivyAuthRedirectUrl,
 			Scopes:       []string{"read", "write"},
 			Endpoint: oauth2.Endpoint{
-				AuthURL: "https://stg-oauth.privy.id/login",
+				AuthURL: config.PrivyAuthUrl,
 			}},
 	}
 }
