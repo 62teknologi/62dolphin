@@ -344,6 +344,56 @@ func ResetPassword(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, utils.ResponseData("success", "reset password successfully", nil))
 }
 
+type privyRequest struct {
+	ReferenceNumber string `json:"reference_number"`
+	ChannelId       string `json:"channel_id"`
+	Info            string `json:"info"`
+	Email           string `json:"email"`
+	Phone           string `json:"phone"`
+	Nik             string `json:"nik"`
+	Name            string `json:"name"`
+	Dob             string `json:"dob"`
+	Selfie          string `json:"selfie"`
+	Identity        string `json:"identity"`
+}
+
+type privyResponse struct {
+	ReferenceNumber string        `json:"reference_number"`
+	RegisterToken   string        `json:"register_token"`
+	Status          string        `json:"status"`
+	ChannelId       string        `json:"channel_id"`
+	PrivyId         string        `json:"privy_id"`
+	Email           string        `json:"email"`
+	Phone           string        `json:"phone"`
+	Identity        privyIdentity `json:"identity"`
+}
+
+type privyIdentity struct {
+	Nik          string `json:"nik"`
+	Name         string `json:"name"`
+	TanggalLahir string `json:"tanggal_lahir"`
+}
+
+func PrivyRegister(ctx *gin.Context) {
+	var req privyRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", err.Error(), nil))
+		return
+	}
+
+	jsonBody, _ := json.Marshal(req)
+	var objBd map[string]interface{}
+	if err := json.Unmarshal(jsonBody, &objBd); err != nil {
+		panic(err)
+	}
+
+	privyAccessToken := privyAdapter.GetAccessToken()
+	privyRegsCredentials := privyAdapter.GenerateCredentials(objBd)
+	privyRegs := privyAdapter.RegisterUser(objBd, privyAccessToken, privyRegsCredentials["timestamp"], privyRegsCredentials["signature"], privyRegsCredentials["reference_number"])
+
+	ctx.JSON(http.StatusOK, utils.ResponseData("success", "success create privy user", privyRegs))
+}
+
 var privyAdapter = auth.NewPrivyOAuth()
 
 func PrivyLogin(ctx *gin.Context) {
@@ -365,14 +415,11 @@ func PrivyCallback(ctx *gin.Context) {
 
 	profile, err := getProfileFromPrivy(config, token)
 	if err != nil {
-		fmt.Println("ERR GETPROFILE", err)
 		ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", "Error getting data user from Privy", nil))
 		return
 	}
 
 	profileJson, _ := json.Marshal(profile)
-	fmt.Println("profileJson", string(profileJson))
-	fmt.Println("config.MonolithUrl", config.MonolithUrl)
 	redirectUrl := fmt.Sprintf("%s/auth/privy/callback?token=%v", config.MonolithUrl+"/api/v1", utils.Encode(string(profileJson)))
 
 	ctx.Redirect(http.StatusTemporaryRedirect, redirectUrl)

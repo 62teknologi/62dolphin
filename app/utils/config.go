@@ -31,6 +31,10 @@ type Config struct {
 	MicrosoftAuthClientSecret   string        `mapstructure:"MICROSOFT_AUTH_CLIENT_SECRET"`
 	MicrosoftAuthRedirectUrl    string        `mapstructure:"MICROSOFT_AUTH_REDIRECT_URL"`
 	MicrosoftAuthTenantId       string        `mapstructure:"MICROSOFT_AUTH_TENANT_ID"`
+	PrivyChannelId              string        `mapstructure:"PRIVY_CHANNEL_ID"`
+	PrivyApiKey                 string        `mapstructure:"PRIVY_API_KEY"`
+	PrivySecretKey              string        `mapstructure:"PRIVY_SECRET_KEY"`
+	PrivyUrl                    string        `mapstructure:"PRIVY_URL"`
 	PrivyAuthClientId           string        `mapstructure:"PRIVY_AUTH_CLIENT_ID"`
 	PrivyAuthClientSecret       string        `mapstructure:"PRIVY_AUTH_CLIENT_SECRET"`
 	PrivyAuthUrl                string        `mapstructure:"PRIVY_AUTH_URL"`
@@ -71,6 +75,11 @@ func LoadConfig(path string) (config Config, err error) {
 	viper.SetDefault("MicrosoftAuthClientSecret", "1234abcd!@#$1234")
 	viper.SetDefault("MicrosoftAuthRedirectUrl", "https://dolphin.com/auth/callback/microsoft")
 	viper.SetDefault("MicrosoftAuthTenantId", "1234abcd!@#$1234")
+
+	viper.SetDefault("PrivyChannelId", "1234abcd!@#$1234")
+	viper.SetDefault("PrivyApiKey", "1234abcd!@#$1234")
+	viper.SetDefault("PrivySecretKey", "1234abcd!@#$1234")
+	viper.SetDefault("PrivyUrl", "https://dolphin.com/privy")
 	viper.SetDefault("PrivyAuthClientId", "1234abcd!@#$1234")
 	viper.SetDefault("PrivyAuthClientSecret", "1234abcd!@#$1234")
 	viper.SetDefault("PrivyAuthRedirectUrl", "https://dolphin.com/auth/callback/privy")

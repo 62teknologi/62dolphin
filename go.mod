@@ -7,6 +7,7 @@ require (
 	github.com/dbssensei/ordentmarketplace v0.0.0-20230114054650-d70735aaae12
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/gin-gonic/gin v1.8.1
+	github.com/go-resty/resty/v2 v2.7.0
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/goccy/go-json v0.9.7
 	github.com/google/uuid v1.3.0
