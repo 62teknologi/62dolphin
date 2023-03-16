@@ -50,7 +50,7 @@ func main() {
 		apiV1.GET("/auth/callback/microsoft", controllers.MicrosoftCallback)
 
 		apiV1.POST("/auth/privy/register", controllers.PrivyRegister)
-		apiV1.GET("/auth/privy/otp", controllers.PrivyOtp)
+		apiV1.GET("/auth/privy/register/otp", controllers.PrivyOtp)
 		apiV1.POST("/auth/privy/register/status", controllers.PrivyRegisterStatus)
 		apiV1.GET("/auth/privy", controllers.PrivyLogin)
 		apiV1.GET("/auth/privy/callback", controllers.PrivyCallback)
