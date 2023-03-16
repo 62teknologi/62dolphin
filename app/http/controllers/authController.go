@@ -388,10 +388,57 @@ func PrivyRegister(ctx *gin.Context) {
 	}
 
 	privyAccessToken := privyAdapter.GetAccessToken()
-	privyRegsCredentials := privyAdapter.GenerateCredentials(objBd)
+	privyRegsCredentials := privyAdapter.GenerateCredentials(objBd, "")
 	privyRegs := privyAdapter.RegisterUser(objBd, privyAccessToken, privyRegsCredentials["timestamp"], privyRegsCredentials["signature"], privyRegsCredentials["reference_number"])
 
 	ctx.JSON(http.StatusOK, utils.ResponseData("success", "success create privy user", privyRegs))
+}
+
+func PrivyOtp(ctx *gin.Context) {
+	var privyRegisterLog map[string]any
+	utils.DB.Table("privy_register_logs").Where("user_email = ?", ctx.Query("email")).Order("id desc").Take(&privyRegisterLog)
+
+	if privyRegisterLog["id"] == nil {
+		ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", "no user registered with email "+ctx.Query("email"), nil))
+		return
+	}
+
+	fmt.Println("privyRegisterLog", privyRegisterLog)
+
+	ctx.Redirect(http.StatusPermanentRedirect, privyRegisterLog["registration_url"].(string))
+}
+
+func PrivyRegisterStatus(ctx *gin.Context) {
+	var req struct {
+		Email string `json:"email" binding:"email,required"`
+	}
+
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", err.Error(), nil))
+		return
+	}
+
+	var privyRegisterLog map[string]any
+	utils.DB.Table("privy_register_logs").Where("user_email = ?", req.Email).Order("id desc").Take(&privyRegisterLog)
+
+	if privyRegisterLog["id"] == nil {
+		ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", "no user registered with email "+req.Email, nil))
+		return
+	}
+
+	jsonBody, _ := json.Marshal(map[string]any{
+		"register_token": privyRegisterLog["register_token"],
+	})
+	var objBd map[string]interface{}
+	if err := json.Unmarshal(jsonBody, &objBd); err != nil {
+		panic(err)
+	}
+
+	privyAccessToken := privyAdapter.GetAccessToken()
+	privyRegsCredentials := privyAdapter.GenerateCredentials(objBd, privyRegisterLog["reference_number"].(string))
+	privyRegs := privyAdapter.RegisterStatus(objBd, privyAccessToken, privyRegsCredentials["timestamp"], privyRegsCredentials["signature"], privyRegsCredentials["reference_number"])
+
+	ctx.JSON(http.StatusOK, utils.ResponseData("success", "success get privy register status", privyRegs))
 }
 
 var privyAdapter = auth.NewPrivyOAuth()

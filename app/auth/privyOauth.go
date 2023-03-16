@@ -5,6 +5,7 @@ import (
 	"crypto/hmac"
 	"crypto/md5"
 	"crypto/sha256"
+	"dolphin/app/utils"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -111,11 +112,14 @@ func (p *PrivyOAuth) GetAccessToken() string {
 	return accessToken
 }
 
-func (p *PrivyOAuth) GenerateCredentials(body map[string]any) map[string]string {
+func (p *PrivyOAuth) GenerateCredentials(body map[string]any, referenceNumber string) map[string]string {
 	// Generate reference number and request number
 	rand.Seed(time.Now().UnixNano())
 	num := rand.Int63n(10000000000000000)
-	referenceNumber := fmt.Sprintf("%016d", num)
+
+	if referenceNumber == "" {
+		referenceNumber = fmt.Sprintf("%016d", num)
+	}
 
 	timestamp := time.Now().Format("Mon, 02 Jan 2006 15:04:05 GMT")
 
@@ -124,6 +128,7 @@ func (p *PrivyOAuth) GenerateCredentials(body map[string]any) map[string]string 
 	body["channel_id"] = config.PrivyChannelId
 
 	// Remove selfie and identity properties from the JSON object
+	delete(body, "user_id")
 	delete(body, "selfie")
 	delete(body, "identity")
 
@@ -170,6 +175,35 @@ func (p *PrivyOAuth) RegisterUser(body map[string]any, accessToken string, times
 	var regRespBody map[string]any
 	json.Unmarshal(regResp.Body(), &regRespBody)
 	regsInfo := regRespBody["data"].(map[string]any)
-	delete(regsInfo, "registration_url")
+
+	_ = utils.DB.Table("privy_register_logs").Create(map[string]any{
+		"user_email":       body["email"],
+		"reference_number": regsInfo["reference_number"],
+		"register_token":   regsInfo["register_token"],
+		"status":           regsInfo["status"],
+		"registration_url": regsInfo["registration_url"],
+	})
+
+	return regsInfo
+}
+
+func (p *PrivyOAuth) RegisterStatus(body map[string]any, accessToken string, timestamp string, signature string, referenceNumber string) map[string]any {
+	client := resty.New()
+	regResp, err := client.R().
+		SetHeader("Authorization", fmt.Sprintf("Bearer %s", accessToken)).
+		SetHeader("Timestamp", timestamp).
+		SetHeader("Signature", signature).
+		SetHeader("Request-ID", referenceNumber).
+		SetBody(body).
+		Post(config.PrivyUrl + "/web/api/v2/register/status")
+
+	if err != nil {
+		panic(err)
+	}
+
+	var regRespBody map[string]any
+	json.Unmarshal(regResp.Body(), &regRespBody)
+	regsInfo := regRespBody["data"].(map[string]any)
+
 	return regsInfo
 }
