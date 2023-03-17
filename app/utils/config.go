@@ -11,9 +11,10 @@ import (
 type Config struct {
 	Environment                 string        `mapstructure:"ENVIRONMENT"`
 	DBSource                    string        `mapstructure:"DB_SOURCE"`
-	TokenSymmetricKey           string        `mapstructure:"TOKEN_SYMMETRIC_KEY"`
 	HTTPServerAddress           string        `mapstructure:"HTTP_SERVER_ADDRESS"`
 	MonolithUrl                 string        `mapstructure:"MONOLITH_URL"`
+	ApiKey                      string        `mapstructure:"API_KEY"`
+	TokenSymmetricKey           string        `mapstructure:"TOKEN_SYMMETRIC_KEY"`
 	AccessTokenDuration         time.Duration `mapstructure:"ACCESS_TOKEN_DURATION"`
 	RefreshTokenDuration        time.Duration `mapstructure:"REFRESH_TOKEN_DURATION"`
 	EmailSMTPHost               string        `mapstructure:"EMAIL_SMTP_HOST"`
@@ -53,8 +54,8 @@ func LoadConfig(path string) (config Config, err error) {
 	viper.SetDefault("DB_SOURCE", "root:password@tcp(127.0.0.1:3306)/dolphin?charset=utf8mb4&parseTime=True&loc=Local")
 	viper.SetDefault("HTTP_SERVER_ADDRESS", "0.0.0.0:8080")
 	viper.SetDefault("MONOLITH_URL", "http://localhost:8000")
+	viper.SetDefault("API_KEY", "skdjakdjaksjdkajsdwew123123sdsd")
 
-	//super secret key
 	viper.SetDefault("TOKEN_SYMMETRIC_KEY", "12345678901234567890123456789012")
 	viper.SetDefault("ACCESS_TOKEN_DURATION", "24h")
 	viper.SetDefault("REFRESH_TOKEN_DURATION", "8760h")
