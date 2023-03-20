@@ -403,8 +403,6 @@ func PrivyOtp(ctx *gin.Context) {
 		return
 	}
 
-	fmt.Println("privyRegisterLog", privyRegisterLog)
-
 	ctx.Redirect(http.StatusPermanentRedirect, privyRegisterLog["registration_url"].(string))
 }
 
@@ -422,7 +420,7 @@ func PrivyRegisterStatus(ctx *gin.Context) {
 	utils.DB.Table("privy_register_logs").Where("user_email = ?", req.Email).Order("id desc").Take(&privyRegisterLog)
 
 	if privyRegisterLog["id"] == nil {
-		ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", "no user registered with email "+req.Email, nil))
+		ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", "no new user registered with email "+req.Email, nil))
 		return
 	}
 
