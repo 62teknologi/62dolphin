@@ -1,180 +1,241 @@
 package controllers
 
 import (
-	"dolphin/app/models"
-	"encoding/json"
+	"dolphin/app/utils"
+	"errors"
 	"fmt"
-	"io/ioutil"
 	"net/http"
-	"os"
+	"strings"
+	"time"
+
+	"github.com/dbssensei/ordentmarketplace/util"
+	"github.com/go-sql-driver/mysql"
 
 	"github.com/gin-gonic/gin"
 )
 
-func FindUser(c *gin.Context) {
-	var result map[string]interface{}
-
-	// map query result to var result
-	err := models.DB.Table("users").Where("id = ?", c.Param("id")).Find(&result).Error
-
-	if len(result) == 0 {
-		fmt.Println(err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Record not found!"})
+func FindUser(ctx *gin.Context) {
+	// query to find user
+	var user map[string]interface{}
+	err := utils.DB.Table("users").Where("is_active", true).Where("id = ?", ctx.Param("id")).Take(&user).Error
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", err.Error(), nil))
+		return
+	}
+	if user["id"] == nil {
+		ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", "user not found", nil))
 		return
 	}
 
-	// build transformer from json file
-	jsonFile, err := os.Open("transformers/user/result.json")
+	// Setup output to client
+	customResponse, err := utils.JsonFileParser("transformers/response/user/get.json")
+	customUser := customResponse["user"]
 
-	if err != nil {
-		fmt.Println(err)
+	utils.MapValuesShifter(customResponse, user)
+	if customUser != nil {
+		utils.MapValuesShifter(customUser.(map[string]any), user)
 	}
 
-	defer jsonFile.Close()
-
-	byteValue, _ := ioutil.ReadAll(jsonFile)
-
-	var transformer map[string]interface{}
-	json.Unmarshal([]byte(byteValue), &transformer)
-
-	// remap result to transformer
-	for key := range transformer {
-		//ini mesti kasih pengecekan apakah dia object atau array atau value
-		transformer[key] = result[key]
-	}
-
-	// return transformed result
-	c.JSON(http.StatusOK, transformer)
+	ctx.JSON(http.StatusOK, utils.ResponseData("success", "find user successfully", customResponse))
 }
 
-func FindUsers(c *gin.Context) {
-	var results []map[string]interface{}
-	var collection []map[string]interface{}
-
-	// map query results to var results
-	err := models.DB.Table("users").Find(&results).Error
-
-	if len(results) == 0 {
-		fmt.Println(err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Record not found!"})
+func FindUsers(ctx *gin.Context) {
+	var users []map[string]interface{}
+	err := utils.DB.Table("users").Find(&users).Error
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", err.Error(), nil))
 		return
 	}
 
-	// build transformer from json file
-	jsonFile, err := os.Open("transformers/user/collection.json")
+	var customResponses []map[string]any
+	for _, user := range users {
+		// Setup output to client
+		customResponse, _ := utils.JsonFileParser("transformers/response/user/get.json")
+		customUser := customResponse["user"]
 
-	if err != nil {
-		fmt.Println(err)
+		utils.MapValuesShifter(customResponse, user)
+		if customUser != nil {
+			utils.MapValuesShifter(customUser.(map[string]any), user)
+		}
+		customResponses = append(customResponses, customResponse)
 	}
 
-	defer jsonFile.Close()
+	// return collection of transformed user
+	ctx.JSON(http.StatusOK, utils.ResponseData("success", "find all users successfully", customResponses))
+}
 
-	byteValue, _ := ioutil.ReadAll(jsonFile)
+type otpVerificationParams struct {
+	OtpReceiver string
+	OtpCode     string
+}
 
-	var transformer map[string]interface{}
-	json.Unmarshal([]byte(byteValue), &transformer)
+func CreateUser(ctx *gin.Context) {
+	// Parse and cleaning input
+	input, err := utils.JsonFileParser("transformers/request/user/create.json")
+	var userInput map[string]any
+	if err = ctx.BindJSON(&userInput); err != nil {
+		ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", err.Error(), nil))
+		return
+	}
+	utils.MapValuesShifter(input, userInput)
+	utils.MapNullValuesRemover(input)
 
-	// remap results to collection
-	for keyUser, result := range results {
-		collection = append(collection, map[string]interface{}{})
-
-		// remap result to transformer
-		for key := range transformer {
-			collection[keyUser][key] = result[key]
+	// Move all otp keys on input to difference map
+	otpOptions := make(map[string]any)
+	for k, v := range input {
+		if strings.Contains(k, "otp") {
+			otpOptions[k] = v
+			delete(input, k)
 		}
 	}
 
-	// return collection of transformed result
-	c.JSON(http.StatusOK, collection)
+	// Hashing Password
+	hashedPassword, err := util.HashPassword(input["password"].(string))
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", fmt.Sprintf("%v", err.Error()), nil))
+		return
+	}
+
+	// Set default fields
+	input["password"] = hashedPassword
+	//input["created_at"] = time.Now()
+	//input["updated_at"] = time.Now()
+	if otpOptions["otp"] == true {
+		input["is_active"] = false
+	}
+
+	// Create and handle query error
+	createUserQuery := utils.DB.Table("users").Create(input)
+	if createUserQuery.Error != nil {
+		var mysqlErr *mysql.MySQLError
+		if errors.As(createUserQuery.Error, &mysqlErr) && mysqlErr.Number == 1062 {
+			ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", createUserQuery.Error.Error(), nil))
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", createUserQuery.Error.Error(), nil))
+		return
+	}
+
+	// Generate and create OTP if otp option is active
+	if otpOptions["otp"] == true {
+		fmt.Println("otpOptions", otpOptions)
+		otpCode, _ := utils.GenerateOTP(8)
+		otpParams := map[string]any{
+			"type":       otpOptions["otp_method"],
+			"code":       otpCode,
+			"receiver":   otpOptions["otp_receiver"],
+			"expires_at": time.Now().Local().Add(time.Minute * 30),
+			"created_at": time.Now(),
+			"updated_at": time.Now(),
+		}
+		createOtp := utils.DB.Table("otps").Create(otpParams)
+		if createOtp.Error != nil {
+			ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", createOtp.Error.Error(), nil))
+			return
+		}
+
+		// Setup email sender
+		receiverList := []utils.EmailReceiver{
+			{
+				Name:    "Dimas",
+				Address: input["email"].(string),
+			},
+		}
+
+		// Send email verification
+		fmt.Printf("%+v\n", otpOptions)
+		go func() {
+			utils.EmailSender("verify_user.html", otpVerificationParams{OtpReceiver: otpOptions["otp_receiver"].(string), OtpCode: otpCode}, receiverList)
+		}()
+	}
+
+	ctx.JSON(http.StatusOK, utils.ResponseData("success", "create user successfully", nil))
 }
 
-func CreateUser(c *gin.Context) {
-	// build transformer from json file
-	jsonFile, err := os.Open("transformers/user/insertInput.json")
-
-	if err != nil {
-		fmt.Println(err)
+func VerifyUser(ctx *gin.Context) {
+	// Parse and cleaning input
+	input, err := utils.JsonFileParser("transformers/request/user/verify.json")
+	var userInput map[string]any
+	if err = ctx.BindJSON(&userInput); err != nil {
+		ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", err.Error(), nil))
+		return
 	}
+	utils.MapValuesShifter(input, userInput)
+	utils.MapNullValuesRemover(input)
 
-	defer jsonFile.Close()
+	// Check if user exist in db
+	var otp map[string]any
+	utils.DB.Table("otps").Where("type = ?", input["method"]).Where("receiver = ?", input["receiver"]).Where("code = ?", input["code"]).Take(&otp)
 
-	byteValue, _ := ioutil.ReadAll(jsonFile)
-
-	var input map[string]interface{}
-	json.Unmarshal([]byte(byteValue), &input)
-
-	// Validate input
-	if err := c.BindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	if otp["id"] == nil {
+		ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", "invalid otp", nil))
 		return
 	}
 
-	models.DB.Table("users").Create(input)
+	//if otp["expires_at"].(time.Time).Unix() < time.Now().Unix() {
+	//	ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", "otp expired", nil))
+	//	return
+	//}
+
+	// Update and handle query error
+	params := map[string]any{
+		"is_active": true,
+		//"updated_at": time.Now(),
+	}
+	fmt.Println("input", input)
+
+	var user map[string]any
+	utils.DB.Table("users").Where(fmt.Sprintf("%v = ?", input["method"]), input["receiver"]).Take(&user)
+	fmt.Println("user", user)
+	updateResultQuery := utils.DB.Table("users").Where(fmt.Sprintf("%v = ?", input["method"]), input["receiver"]).Updates(&params)
+	fmt.Printf("%+v", updateResultQuery)
+	if updateResultQuery.Error != nil {
+		ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", updateResultQuery.Error.Error(), nil))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, utils.ResponseData("success", "verify user successfully", nil))
 }
 
-func UpdateUser(c *gin.Context) {
-	// build transformer from json file
-	jsonFile, err := os.Open("transformers/user/updateInput.json")
+func UpdateUser(ctx *gin.Context) {
+	// Parse and cleaning input
+	input, err := utils.JsonFileParser("transformers/request/user/update.json")
+	var userInput map[string]any
+	if err = ctx.BindJSON(&userInput); err != nil {
+		ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", err.Error(), nil))
+		return
+	}
+	utils.MapValuesShifter(input, userInput)
+	utils.MapNullValuesRemover(input)
 
-	if err != nil {
-		fmt.Println(err)
+	// Hashing Password (if exist)
+	if input["password"] != nil {
+		hashedPassword, err := util.HashPassword(input["password"].(string))
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", fmt.Sprintf("%v", err.Error()), nil))
+			return
+		}
+		input["password"] = hashedPassword
 	}
 
-	defer jsonFile.Close()
+	// TODO verify updated data with otp
 
-	byteValue, _ := ioutil.ReadAll(jsonFile)
+	// Set default fields
+	//input["updated_at"] = time.Now()
 
-	var input map[string]interface{}
-	json.Unmarshal([]byte(byteValue), &input)
-
-	// Validate input
-	if err := c.BindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	// Update and handle query error
+	updateResultQuery := utils.DB.Table("users").Where("id = ?", ctx.Param("id")).Updates(input)
+	if updateResultQuery.Error != nil {
+		var mysqlErr *mysql.MySQLError
+		if errors.As(updateResultQuery.Error, &mysqlErr) && mysqlErr.Number == 1062 {
+			ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", updateResultQuery.Error.Error(), nil))
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", updateResultQuery.Error.Error(), nil))
 		return
 	}
 
-	var updateResult = models.DB.Table("users").Where("id = ?", c.Param("id")).Updates(input)
-
-	if updateResult.Error != nil {
-		fmt.Println(updateResult.Error)
-		c.JSON(http.StatusBadRequest, gin.H{"error": updateResult.Error})
-		return
-	}
-
-	// map query result to var result
-	// updateResult.RowsAffected always return 0 if row found but no changes
-	// meaning, we need to reselect the row to check if data exist or not
-	var result map[string]interface{}
-
-	models.DB.Table("users").Where("id = ?", c.Param("id")).Find(&result)
-
-	if len(result) == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Record not found!"})
-		return
-	}
-
-	// build transformer from json file
-	jsonFile, err = os.Open("transformers/user/result.json")
-
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	defer jsonFile.Close()
-
-	byteValue, _ = ioutil.ReadAll(jsonFile)
-
-	var transformer map[string]interface{}
-	json.Unmarshal([]byte(byteValue), &transformer)
-
-	// remap result to transformer
-	for key := range transformer {
-		//ini mesti kasih pengecekan apakah dia object atau array atau value
-		transformer[key] = result[key]
-	}
-
-	// return transformed result
-	c.JSON(http.StatusOK, transformer)
+	ctx.JSON(http.StatusOK, utils.ResponseData("success", "update user successfully", nil))
 }
 
 func DeleteUser(c *gin.Context) {}

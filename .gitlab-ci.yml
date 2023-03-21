@@ -1,0 +1,13 @@
+variables:
+  AUTH: http://jenkins.62dev.net/job/62dev-golang-dolphin/buildWithParameters?token=1160021096e584a07cc04c282494e9ad14&branch=$CI_COMMIT_REF_NAME
+
+stages:
+  - deploy
+
+deploy:
+  stage: deploy
+  only:
+    - main
+    - staging
+  script:
+    - 'curl -X post -L --user deploy:11cb6ad2404c0beef91cb6fe7a585072f3 ${AUTH}'

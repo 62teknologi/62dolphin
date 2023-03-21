@@ -2,23 +2,98 @@ package main
 
 import (
 	"dolphin/app/http/controllers"
-	"dolphin/app/models"
+	"dolphin/app/http/middlewares"
+	"dolphin/app/tokens"
+	"dolphin/app/utils"
+	"fmt"
 	"github.com/gin-gonic/gin"
+	"net/http"
 )
 
 func main() {
-	r := gin.Default()
-	models.ConnectDatabase()
-
-	r.GET("/sign-in", controllers.SignIn)
-	r.GET("/users", controllers.FindUsers)
-	r.POST("/users", controllers.CreateUser)
-	r.GET("/users/:id", controllers.FindUser)
-	r.PUT("/users/:id", controllers.UpdateUser)
-	r.DELETE("/users/:id", controllers.DeleteUser) // new
-
-	err := r.Run()
+	config, err := utils.LoadConfig(".")
 	if err != nil {
+		fmt.Printf("cannot load config: %w", err)
+		return
+	}
+
+	utils.ConnectDatabase(config.DBSource)
+
+	tokenMaker, err := tokens.NewJWTMaker(config.TokenSymmetricKey)
+	if err != nil {
+		fmt.Printf("cannot create token maker: %w", err)
+		return
+	}
+
+	r := gin.Default()
+
+	r.GET("/health", func(c *gin.Context) {
+		c.JSON(http.StatusOK, utils.ResponseData("success", "Server running well", nil))
+	})
+
+	apiV1 := r.Group("/api/v1")
+	{
+		/*
+			Auth
+		*/
+		apiV1.POST("/auth/sign-in", controllers.SignIn)
+		apiV1.POST("/auth/sign-up", controllers.CreateUser)
+
+		apiV1.GET("/auth/google", controllers.GoogleLogin)
+		// TODO need to change to apiV1
+		r.GET("/auth/callback/google", controllers.GoogleCallback)
+
+		apiV1.GET("/auth/facebook", controllers.FacebookLogin)
+		apiV1.GET("/auth/callback/facebook", controllers.FacebookCallback)
+
+		apiV1.GET("/auth/microsoft", controllers.MicrosoftLogin)
+		apiV1.GET("/auth/callback/microsoft", controllers.MicrosoftCallback)
+
+		apiV1.POST("/auth/privy/register", controllers.PrivyRegister)
+		apiV1.GET("/auth/privy/register/otp", controllers.PrivyOtp)
+		apiV1.POST("/auth/privy/register/status", controllers.PrivyRegisterStatus)
+		apiV1.GET("/auth/privy", controllers.PrivyLogin)
+		apiV1.GET("/auth/privy/callback", controllers.PrivyCallback)
+
+		/*
+			Tokens
+		*/
+		apiV1.POST("/tokens/create", controllers.CreateAccessToken)
+		apiV1.POST("/tokens/verify", controllers.VerifyAccessToken)
+		apiV1.POST("/tokens/refresh", controllers.RenewAccessToken)
+
+		/*
+			Passwords
+		*/
+		apiV1.POST("/passwords/forgot-password", controllers.ForgotPassword)
+		apiV1.PATCH("/passwords/reset-password/:token", controllers.ResetPassword)
+
+		/*
+			Users
+		*/
+		apiV1.GET("/users", controllers.FindUsers)
+		apiV1.POST("/users", controllers.CreateUser)
+		apiV1.GET("/users/:id", controllers.FindUser)
+		apiV1.POST("/users/verify", controllers.VerifyUser)
+	}
+
+	authorizedV1 := r.Group("/api/v1").Use(middlewares.AuthMiddleware(tokenMaker))
+	{
+		/*
+			Tokens
+		*/
+		authorizedV1.POST("/tokens/block-token", controllers.BlockRefreshToken)
+
+		/*
+			Users
+		*/
+		authorizedV1.PUT("/users/:id", controllers.UpdateUser)
+		authorizedV1.DELETE("/users/:id", controllers.DeleteUser)
+	}
+
+	err = r.Run(config.HTTPServerAddress)
+	if err != nil {
+		fmt.Printf("cannot run server: %w", err)
 		return
 	}
 }
