@@ -2,7 +2,7 @@
     "otp": true,
     "otp_method": "",
     "otp_receiver": "",
-    "username":"",
     "email": "",
-    "password": ""
+    "password": "",
+    "active": ""
 }

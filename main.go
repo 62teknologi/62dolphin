@@ -40,7 +40,8 @@ func main() {
 		apiV1.POST("/auth/sign-up", controllers.CreateUser)
 
 		apiV1.GET("/auth/google", controllers.GoogleLogin)
-		apiV1.GET("/auth/callback/google", controllers.GoogleCallback)
+		// TODO need to change to apiV1
+		r.GET("/auth/callback/google", controllers.GoogleCallback)
 
 		apiV1.GET("/auth/facebook", controllers.FacebookLogin)
 		apiV1.GET("/auth/callback/facebook", controllers.FacebookCallback)
@@ -48,9 +49,16 @@ func main() {
 		apiV1.GET("/auth/microsoft", controllers.MicrosoftLogin)
 		apiV1.GET("/auth/callback/microsoft", controllers.MicrosoftCallback)
 
+		apiV1.POST("/auth/privy/register", controllers.PrivyRegister)
+		apiV1.GET("/auth/privy/register/otp", controllers.PrivyOtp)
+		apiV1.POST("/auth/privy/register/status", controllers.PrivyRegisterStatus)
+		apiV1.GET("/auth/privy", controllers.PrivyLogin)
+		apiV1.GET("/auth/privy/callback", controllers.PrivyCallback)
+
 		/*
 			Tokens
 		*/
+		apiV1.POST("/tokens/create", controllers.CreateAccessToken)
 		apiV1.POST("/tokens/verify", controllers.VerifyAccessToken)
 		apiV1.POST("/tokens/refresh", controllers.RenewAccessToken)
 

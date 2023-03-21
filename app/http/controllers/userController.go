@@ -4,11 +4,12 @@ import (
 	"dolphin/app/utils"
 	"errors"
 	"fmt"
-	"github.com/dbssensei/ordentmarketplace/util"
-	"github.com/go-sql-driver/mysql"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/dbssensei/ordentmarketplace/util"
+	"github.com/go-sql-driver/mysql"
 
 	"github.com/gin-gonic/gin"
 )
@@ -97,8 +98,8 @@ func CreateUser(ctx *gin.Context) {
 
 	// Set default fields
 	input["password"] = hashedPassword
-	input["created_at"] = time.Now()
-	input["updated_at"] = time.Now()
+	//input["created_at"] = time.Now()
+	//input["updated_at"] = time.Now()
 	if otpOptions["otp"] == true {
 		input["is_active"] = false
 	}
@@ -117,6 +118,7 @@ func CreateUser(ctx *gin.Context) {
 
 	// Generate and create OTP if otp option is active
 	if otpOptions["otp"] == true {
+		fmt.Println("otpOptions", otpOptions)
 		otpCode, _ := utils.GenerateOTP(8)
 		otpParams := map[string]any{
 			"type":       otpOptions["otp_method"],
@@ -141,6 +143,7 @@ func CreateUser(ctx *gin.Context) {
 		}
 
 		// Send email verification
+		fmt.Printf("%+v\n", otpOptions)
 		go func() {
 			utils.EmailSender("verify_user.html", otpVerificationParams{OtpReceiver: otpOptions["otp_receiver"].(string), OtpCode: otpCode}, receiverList)
 		}()
@@ -169,19 +172,23 @@ func VerifyUser(ctx *gin.Context) {
 		return
 	}
 
-	if otp["expires_at"].(time.Time).Unix() < time.Now().Unix() {
-		ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", "otp expired", nil))
-		return
-	}
+	//if otp["expires_at"].(time.Time).Unix() < time.Now().Unix() {
+	//	ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", "otp expired", nil))
+	//	return
+	//}
 
 	// Update and handle query error
 	params := map[string]any{
-		"is_active":  true,
-		"updated_at": time.Now(),
+		"is_active": true,
+		//"updated_at": time.Now(),
 	}
+	fmt.Println("input", input)
 
+	var user map[string]any
+	utils.DB.Table("users").Where(fmt.Sprintf("%v = ?", input["method"]), input["receiver"]).Take(&user)
+	fmt.Println("user", user)
 	updateResultQuery := utils.DB.Table("users").Where(fmt.Sprintf("%v = ?", input["method"]), input["receiver"]).Updates(&params)
-
+	fmt.Printf("%+v", updateResultQuery)
 	if updateResultQuery.Error != nil {
 		ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", updateResultQuery.Error.Error(), nil))
 		return
@@ -214,7 +221,7 @@ func UpdateUser(ctx *gin.Context) {
 	// TODO verify updated data with otp
 
 	// Set default fields
-	input["updated_at"] = time.Now()
+	//input["updated_at"] = time.Now()
 
 	// Update and handle query error
 	updateResultQuery := utils.DB.Table("users").Where("id = ?", ctx.Param("id")).Updates(input)

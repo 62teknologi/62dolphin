@@ -9,10 +9,10 @@ migrationcreate:
 	migrate create -ext sql -dir database/migrations -seq init_schema
 
 migrateup:
-	migrate -path database/migrations -database "$(db_driver)://$(db_username):$(db_password)@tcp(127.0.0.1:3306)/dolphin?charset=utf8mb4&parseTime=True&loc=Local" -verbose up
+	migrate -path database/migrations -database "$(db_driver)://$(db_username):$(db_password)@tcp(127.0.0.1:3306)/tourid_dev?charset=utf8mb4&parseTime=True&loc=Local" -verbose up
 
 migratedown:
-	migrate -path database/migrations -database "$(db_driver)://$(db_username):$(db_password)@tcp(127.0.0.1:3306)/dolphin?charset=utf8mb4&parseTime=True&loc=Local" -verbose down
+	migrate -path database/migrations -database "$(db_driver)://$(db_username):$(db_password)@tcp(127.0.0.1:3306)/tourid_dev?charset=utf8mb4&parseTime=True&loc=Local" -verbose down
 
 
 .PHONY: dev migrationcreate migrateup migratedown
