@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"net/url"
 )
 
 func main() {
@@ -17,7 +18,7 @@ func main() {
 		return
 	}
 
-	utils.ConnectDatabase(config.DBSource)
+	db := utils.ConnectDatabase(config.DBSource)
 
 	tokenMaker, err := tokens.NewJWTMaker(config.TokenSymmetricKey)
 	if err != nil {
@@ -28,7 +29,27 @@ func main() {
 	r := gin.Default()
 
 	r.GET("/health", func(c *gin.Context) {
-		c.JSON(http.StatusOK, utils.ResponseData("success", "Server running well", nil))
+		dbConn, _ := db.DB()
+		parsedDsn, _ := url.Parse(config.DBSource)
+		host := parsedDsn.Host
+		dbName := parsedDsn.Path
+
+		if err := dbConn.Ping(); err != nil {
+			c.JSON(http.StatusOK, utils.ResponseData("success", "Server running well", map[string]any{
+				"server_status":   "ok",
+				"database_status": "error",
+				"database_name":   dbName,
+				"database_host":   host,
+			}))
+			return
+		}
+
+		c.JSON(http.StatusOK, utils.ResponseData("success", "Server running well", map[string]any{
+			"server_status":   "ok",
+			"database_status": "ok",
+			"database_name":   dbName,
+			"database_host":   host,
+		}))
 	})
 
 	apiV1 := r.Group("/api/v1")
