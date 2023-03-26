@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"net/url"
+	"strings"
 )
 
 func main() {
@@ -33,6 +34,20 @@ func main() {
 		parsedDsn, _ := url.Parse(config.DBSource)
 		host := parsedDsn.Host
 		dbName := parsedDsn.Path
+
+		if host == "" {
+			// Parse DSN server format
+			pairs := strings.Split(dbName, " ")
+			data := make(map[string]string)
+			for _, pair := range pairs {
+				parts := strings.Split(pair, "=")
+				if len(parts) == 2 {
+					data[parts[0]] = parts[1]
+				}
+			}
+			host = data["host"] + ":" + data["port"]
+			dbName = data["dbname"]
+		}
 
 		if err := dbConn.Ping(); err != nil {
 			c.JSON(http.StatusOK, utils.ResponseData("success", "Server running well", map[string]any{
