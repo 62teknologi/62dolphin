@@ -452,16 +452,46 @@ func PrivyCallback(ctx *gin.Context) {
 		return
 	}
 
+	code := ctx.Query("code")
+
 	token, err := privyAdapter.LoginCallback(ctx)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", "Error getting token from Privy", nil))
 		return
 	}
 
-	profile, err := getProfileFromPrivy(config, token)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", "Error getting data user from Privy", nil))
-		return
+	var profile map[string]any
+
+	if token.AccessToken != "" {
+		privyProfile, err := getProfileFromPrivy(config, token)
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", "Error getting data user from Privy", nil))
+			return
+		}
+
+		profile = privyProfile
+
+		_ = utils.DB.Table("privy_login_logs").Create(map[string]any{
+			"application_id": profile["data"].(map[string]any)["application_id"],
+			"authorized_at":  profile["data"].(map[string]any)["authorized_at"],
+			"contact":        profile["data"].(map[string]any)["contact"],
+			"identity":       profile["data"].(map[string]any)["identity"],
+			"created_at":     time.Now(),
+			"updated_at":     time.Now(),
+		})
+	} else {
+		var privyLoginLog map[string]any
+		utils.DB.Table("privy_login_logs").Where("token = ?", code).Order("id desc").Take(&privyLoginLog)
+
+		var contact map[string]any
+		_ = json.Unmarshal([]byte(privyLoginLog["contact"].(string)), &contact)
+		privyLoginLog["contact"] = contact
+
+		var identity map[string]any
+		_ = json.Unmarshal([]byte(privyLoginLog["identity"].(string)), &identity)
+		privyLoginLog["identity"] = identity
+
+		profile = map[string]any{"data": privyLoginLog}
 	}
 
 	profileJson, _ := json.Marshal(profile)
