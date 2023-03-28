@@ -460,9 +460,14 @@ func PrivyCallback(ctx *gin.Context) {
 		return
 	}
 
+	var privyLoginLog map[string]any
+	utils.DB.Table("privy_login_logs").Where("token = ?", code).Order("id desc").Take(&privyLoginLog)
+
+	fmt.Println("privyLoginLog", privyLoginLog)
+
 	var profile map[string]any
 
-	if token.AccessToken != "" {
+	if privyLoginLog["id"] == nil {
 		privyProfile, err := getProfileFromPrivy(config, token)
 		if err != nil {
 			ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", "Error getting data user from Privy", nil))
@@ -480,9 +485,6 @@ func PrivyCallback(ctx *gin.Context) {
 			"updated_at":     time.Now(),
 		})
 	} else {
-		var privyLoginLog map[string]any
-		utils.DB.Table("privy_login_logs").Where("token = ?", code).Order("id desc").Take(&privyLoginLog)
-
 		var contact map[string]any
 		_ = json.Unmarshal([]byte(privyLoginLog["contact"].(string)), &contact)
 		privyLoginLog["contact"] = contact
