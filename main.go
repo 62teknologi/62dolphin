@@ -6,7 +6,6 @@ import (
 	"dolphin/app/tokens"
 	"dolphin/app/utils"
 	"fmt"
-	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
@@ -28,13 +27,16 @@ func main() {
 
 	r := gin.Default()
 
-	r.GET("/health", func(c *gin.Context) {
-		c.JSON(http.StatusOK, utils.ResponseData("success", "Server running well", nil))
-	})
+	pub := r.Use(middlewares.DbSelectorMiddleware())
+	{
+		pub.GET("/health", controllers.CheckAppHealth)
+
+	}
 
 	//todo use middleware db selector
 	apiV1 := r.Group("/api/v1").Use(middlewares.DbSelectorMiddleware())
 	{
+
 		/*
 			Auth
 		*/
@@ -51,9 +53,16 @@ func main() {
 		apiV1.GET("/auth/microsoft", controllers.MicrosoftLogin)
 		apiV1.GET("/auth/callback/microsoft", controllers.MicrosoftCallback)
 
+		apiV1.POST("/auth/privy/register", controllers.PrivyRegister)
+		apiV1.GET("/auth/privy/register/otp", controllers.PrivyOtp)
+		apiV1.POST("/auth/privy/register/status", controllers.PrivyRegisterStatus)
+		apiV1.GET("/auth/privy", controllers.PrivyLogin)
+		apiV1.GET("/auth/privy/callback", controllers.PrivyCallback)
+
 		/*
 			Tokens
 		*/
+		apiV1.POST("/tokens/create", controllers.CreateAccessToken)
 		apiV1.POST("/tokens/verify", controllers.VerifyAccessToken)
 		apiV1.POST("/tokens/refresh", controllers.RenewAccessToken)
 

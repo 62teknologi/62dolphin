@@ -6,5 +6,8 @@ stages:
 
 deploy:
   stage: deploy
+  only:
+    - main
+    - staging
   script:
     - 'curl -X post -L --user deploy:11cb6ad2404c0beef91cb6fe7a585072f3 ${AUTH}'

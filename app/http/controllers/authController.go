@@ -12,6 +12,7 @@ import (
 
 	"github.com/dbssensei/ordentmarketplace/util"
 	"github.com/gin-gonic/gin"
+	"github.com/goccy/go-json"
 	"golang.org/x/oauth2"
 	"google.golang.org/api/option"
 	"google.golang.org/api/people/v1"
@@ -341,4 +342,160 @@ func ResetPassword(ctx *gin.Context) {
 	fmt.Println(hashedPassword)
 
 	ctx.JSON(http.StatusOK, utils.ResponseData("success", "reset password successfully", nil))
+}
+
+type privyRequest struct {
+	ReferenceNumber string `json:"reference_number"`
+	ChannelId       string `json:"channel_id"`
+	Info            string `json:"info"`
+	Email           string `json:"email"`
+	Phone           string `json:"phone"`
+	Nik             string `json:"nik"`
+	Name            string `json:"name"`
+	Dob             string `json:"dob"`
+	Selfie          string `json:"selfie"`
+	Identity        string `json:"identity"`
+}
+
+type privyResponse struct {
+	ReferenceNumber string        `json:"reference_number"`
+	RegisterToken   string        `json:"register_token"`
+	Status          string        `json:"status"`
+	ChannelId       string        `json:"channel_id"`
+	PrivyId         string        `json:"privy_id"`
+	Email           string        `json:"email"`
+	Phone           string        `json:"phone"`
+	Identity        privyIdentity `json:"identity"`
+}
+
+type privyIdentity struct {
+	Nik          string `json:"nik"`
+	Name         string `json:"name"`
+	TanggalLahir string `json:"tanggal_lahir"`
+}
+
+func PrivyRegister(ctx *gin.Context) {
+	var req privyRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", err.Error(), nil))
+		return
+	}
+
+	jsonBody, _ := json.Marshal(req)
+	var objBd map[string]interface{}
+	if err := json.Unmarshal(jsonBody, &objBd); err != nil {
+		panic(err)
+	}
+
+	privyAccessToken := privyAdapter.GetAccessToken()
+	privyRegsCredentials := privyAdapter.GenerateCredentials(objBd, "")
+	privyRegs := privyAdapter.RegisterUser(objBd, privyAccessToken, privyRegsCredentials["timestamp"], privyRegsCredentials["signature"], privyRegsCredentials["reference_number"])
+
+	ctx.JSON(http.StatusOK, utils.ResponseData("success", "success create privy user", privyRegs))
+}
+
+func PrivyOtp(ctx *gin.Context) {
+	var privyRegisterLog map[string]any
+	utils.DB.Table("privy_register_logs").Where("user_email = ?", ctx.Query("email")).Order("id desc").Take(&privyRegisterLog)
+
+	if privyRegisterLog["id"] == nil {
+		ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", "no user registered with email "+ctx.Query("email"), nil))
+		return
+	}
+
+	ctx.Redirect(http.StatusPermanentRedirect, privyRegisterLog["registration_url"].(string))
+}
+
+func PrivyRegisterStatus(ctx *gin.Context) {
+	var req struct {
+		Email string `json:"email" binding:"email,required"`
+	}
+
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", err.Error(), nil))
+		return
+	}
+
+	var privyRegisterLog map[string]any
+	utils.DB.Table("privy_register_logs").Where("user_email = ?", req.Email).Order("id desc").Take(&privyRegisterLog)
+
+	if privyRegisterLog["id"] == nil {
+		ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", "no new user registered with email "+req.Email, nil))
+		return
+	}
+
+	jsonBody, _ := json.Marshal(map[string]any{
+		"register_token": privyRegisterLog["register_token"],
+	})
+	var objBd map[string]interface{}
+	if err := json.Unmarshal(jsonBody, &objBd); err != nil {
+		panic(err)
+	}
+
+	privyAccessToken := privyAdapter.GetAccessToken()
+	privyRegsCredentials := privyAdapter.GenerateCredentials(objBd, privyRegisterLog["reference_number"].(string))
+	privyRegs := privyAdapter.RegisterStatus(objBd, privyAccessToken, privyRegsCredentials["timestamp"], privyRegsCredentials["signature"], privyRegsCredentials["reference_number"])
+
+	ctx.JSON(http.StatusOK, utils.ResponseData("success", "success get privy register status", privyRegs))
+}
+
+var privyAdapter = auth.NewPrivyOAuth()
+
+func PrivyLogin(ctx *gin.Context) {
+	ctx.Redirect(http.StatusTemporaryRedirect, privyAdapter.GenerateLoginURL())
+}
+
+func PrivyCallback(ctx *gin.Context) {
+	config, err := utils.LoadConfig(".")
+	if err != nil {
+		fmt.Errorf("cannot load config: %w", err)
+		return
+	}
+
+	token, err := privyAdapter.LoginCallback(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", "Error getting token from Privy", nil))
+		return
+	}
+
+	profile, err := getProfileFromPrivy(config, token)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", "Error getting data user from Privy", nil))
+		return
+	}
+
+	profileJson, _ := json.Marshal(profile)
+	redirectUrl := fmt.Sprintf("%s/auth/privy/callback?token=%v", config.MonolithUrl+"/api/v1", utils.Encode(string(profileJson)))
+	ctx.Header("Authorization", "Basic "+utils.Encode(config.ApiKey))
+	ctx.Redirect(http.StatusTemporaryRedirect, redirectUrl)
+}
+
+func getProfileFromPrivy(config utils.Config, token *oauth2.Token) (map[string]any, error) {
+	// create HTTP request with POST method and request body
+	req, err := http.NewRequest("GET", config.PrivyAuthGetUserExchangeUrl, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// set request headers
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token.AccessToken)
+
+	// send HTTP request
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	// read HTTP response body
+	var response map[string]any
+	err = json.NewDecoder(resp.Body).Decode(&response)
+	if err != nil {
+		return nil, err
+	}
+
+	// print HTTP response status code and body
+	return response, nil
 }
