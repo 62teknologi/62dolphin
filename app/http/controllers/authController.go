@@ -217,7 +217,6 @@ func SignIn(ctx *gin.Context) {
 	utils.MapValuesShifter(customResponse, defaultResponse)
 	if customUser != nil {
 		utils.MapValuesShifter(customUser.(map[string]any), user)
-		fmt.Println("customUser", customUser)
 	}
 
 	ctx.JSON(http.StatusOK, utils.ResponseData("success", "sign-in successfully", customResponse))
@@ -282,7 +281,6 @@ func ForgotPassword(ctx *gin.Context) {
 				Name:    input["receiver"].(string),
 				Subject: "Your password reset token (valid for 10min)",
 			}
-			fmt.Println("emailData", emailData)
 			utils.EmailSender("forgot_password.html", emailData, receiverList)
 		}()
 	}
@@ -339,7 +337,6 @@ func ResetPassword(ctx *gin.Context) {
 	var user map[string]any
 	utils.DB.Table("users").Where(splitToken[0]+" = ?", splitToken[2]).Update("password", hashedPassword)
 	fmt.Println(user)
-	fmt.Println(hashedPassword)
 
 	ctx.JSON(http.StatusOK, utils.ResponseData("success", "reset password successfully", nil))
 }
@@ -453,6 +450,7 @@ func PrivyCallback(ctx *gin.Context) {
 	}
 
 	code := ctx.Query("code")
+	fmt.Println("CALLBACK CODE", code)
 
 	token, err := privyAdapter.LoginCallback(ctx)
 	if err != nil {
@@ -462,7 +460,6 @@ func PrivyCallback(ctx *gin.Context) {
 
 	var privyLoginLog map[string]any
 	utils.DB.Table("privy_login_logs").Where("token = ?", code).Order("id desc").Take(&privyLoginLog)
-
 	fmt.Println("privyLoginLog", privyLoginLog)
 
 	var profile map[string]any

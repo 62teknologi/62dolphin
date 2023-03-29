@@ -63,7 +63,6 @@ func EmailSender(htmlTemplate string, params any, receiverList []EmailReceiver) 
 
 	m := gomail.NewMessage()
 	for _, r := range receiverList {
-		fmt.Println(r)
 		m.SetHeader("From", config.EmailSenderName)
 		m.SetAddressHeader("To", r.Address, r.Name)
 		m.SetHeader("Subject", "Newsletter #1")
