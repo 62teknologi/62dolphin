@@ -23,8 +23,6 @@ func VerifyAccessToken(ctx *gin.Context) {
 		return
 	}
 
-	fmt.Println("req", req)
-
 	// Setup and check given token
 	config, err := utils.LoadConfig(".")
 	if err != nil {
@@ -39,8 +37,6 @@ func VerifyAccessToken(ctx *gin.Context) {
 	}
 
 	payload, err := tokenMaker.VerifyToken(req.AccessToken)
-	fmt.Println("payload", payload)
-	fmt.Println("err", err)
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusUnauthorized, utils.ResponseData("error", err.Error(), nil))
 		return

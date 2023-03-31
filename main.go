@@ -6,8 +6,8 @@ import (
 	"dolphin/app/tokens"
 	"dolphin/app/utils"
 	"fmt"
+
 	"github.com/gin-gonic/gin"
-	"net/http"
 )
 
 func main() {
@@ -17,7 +17,7 @@ func main() {
 		return
 	}
 
-	utils.ConnectDatabase(config.DBSource)
+	utils.ConnectDatabase(config)
 
 	tokenMaker, err := tokens.NewJWTMaker(config.TokenSymmetricKey)
 	if err != nil {
@@ -27,12 +27,16 @@ func main() {
 
 	r := gin.Default()
 
-	r.GET("/health", func(c *gin.Context) {
-		c.JSON(http.StatusOK, utils.ResponseData("success", "Server running well", nil))
-	})
-
-	apiV1 := r.Group("/api/v1")
+	pub := r.Use(middlewares.DbSelectorMiddleware())
 	{
+		pub.GET("/health", controllers.CheckAppHealth)
+
+	}
+
+	//todo use middleware db selector
+	apiV1 := r.Group("/api/v1").Use(middlewares.DbSelectorMiddleware())
+	{
+
 		/*
 			Auth
 		*/

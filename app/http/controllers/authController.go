@@ -217,7 +217,6 @@ func SignIn(ctx *gin.Context) {
 	utils.MapValuesShifter(customResponse, defaultResponse)
 	if customUser != nil {
 		utils.MapValuesShifter(customUser.(map[string]any), user)
-		fmt.Println("customUser", customUser)
 	}
 
 	ctx.JSON(http.StatusOK, utils.ResponseData("success", "sign-in successfully", customResponse))
@@ -282,7 +281,6 @@ func ForgotPassword(ctx *gin.Context) {
 				Name:    input["receiver"].(string),
 				Subject: "Your password reset token (valid for 10min)",
 			}
-			fmt.Println("emailData", emailData)
 			utils.EmailSender("forgot_password.html", emailData, receiverList)
 		}()
 	}
@@ -339,7 +337,6 @@ func ResetPassword(ctx *gin.Context) {
 	var user map[string]any
 	utils.DB.Table("users").Where(splitToken[0]+" = ?", splitToken[2]).Update("password", hashedPassword)
 	fmt.Println(user)
-	fmt.Println(hashedPassword)
 
 	ctx.JSON(http.StatusOK, utils.ResponseData("success", "reset password successfully", nil))
 }
@@ -452,16 +449,48 @@ func PrivyCallback(ctx *gin.Context) {
 		return
 	}
 
+	code := ctx.Query("code")
+	fmt.Println("CALLBACK CODE", code)
+
 	token, err := privyAdapter.LoginCallback(ctx)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", "Error getting token from Privy", nil))
 		return
 	}
 
-	profile, err := getProfileFromPrivy(config, token)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", "Error getting data user from Privy", nil))
-		return
+	var privyLoginLog map[string]any
+	utils.DB.Table("privy_login_logs").Where("token = ?", code).Order("id desc").Take(&privyLoginLog)
+	fmt.Println("privyLoginLog", privyLoginLog)
+
+	var profile map[string]any
+
+	if privyLoginLog["id"] == nil {
+		privyProfile, err := getProfileFromPrivy(config, token)
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", "Error getting data user from Privy", nil))
+			return
+		}
+
+		profile = privyProfile
+
+		_ = utils.DB.Table("privy_login_logs").Create(map[string]any{
+			"application_id": profile["data"].(map[string]any)["application_id"],
+			"authorized_at":  profile["data"].(map[string]any)["authorized_at"],
+			"contact":        profile["data"].(map[string]any)["contact"],
+			"identity":       profile["data"].(map[string]any)["identity"],
+			"created_at":     time.Now(),
+			"updated_at":     time.Now(),
+		})
+	} else {
+		var contact map[string]any
+		_ = json.Unmarshal([]byte(privyLoginLog["contact"].(string)), &contact)
+		privyLoginLog["contact"] = contact
+
+		var identity map[string]any
+		_ = json.Unmarshal([]byte(privyLoginLog["identity"].(string)), &identity)
+		privyLoginLog["identity"] = identity
+
+		profile = map[string]any{"data": privyLoginLog}
 	}
 
 	profileJson, _ := json.Marshal(profile)

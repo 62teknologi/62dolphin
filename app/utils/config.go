@@ -10,7 +10,8 @@ import (
 // The values are read by viper from a config file or environment variable.
 type Config struct {
 	Environment                 string        `mapstructure:"ENVIRONMENT"`
-	DBSource                    string        `mapstructure:"DB_SOURCE"`
+	DBSource1                   string        `mapstructure:"DB_SOURCE_1"`
+	DBSource2                   string        `mapstructure:"DB_SOURCE_2"`
 	HTTPServerAddress           string        `mapstructure:"HTTP_SERVER_ADDRESS"`
 	MonolithUrl                 string        `mapstructure:"MONOLITH_URL"`
 	ApiKey                      string        `mapstructure:"API_KEY"`
@@ -51,7 +52,8 @@ func LoadConfig(path string) (config Config, err error) {
 	viper.SetConfigType("env")
 
 	viper.SetDefault("ENVIRONMENT", "development")
-	viper.SetDefault("DB_SOURCE", "root:password@tcp(127.0.0.1:3306)/dolphin?charset=utf8mb4&parseTime=True&loc=Local")
+	viper.SetDefault("DB_SOURCE_1", "root:password@tcp(127.0.0.1:3306)/dolphin?charset=utf8mb4&parseTime=True&loc=Local")
+	viper.SetDefault("DB_SOURCE_2", "")
 	viper.SetDefault("HTTP_SERVER_ADDRESS", "0.0.0.0:8080")
 	viper.SetDefault("MONOLITH_URL", "http://localhost:8000")
 	viper.SetDefault("API_KEY", "skdjakdjaksjdkajsdwew123123sdsd")

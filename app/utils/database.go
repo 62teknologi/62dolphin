@@ -1,22 +1,32 @@
 package utils
 
 import (
-	"gorm.io/driver/mysql"
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
+var DB1 *gorm.DB
+
+var DB2 *gorm.DB
+
 var DB *gorm.DB
 
-func ConnectDatabase(dbSource string) {
-	db, err := gorm.Open(mysql.Open(dbSource), &gorm.Config{})
+func ConnectDatabase(cfg Config) {
+
+	db1, err := gorm.Open(postgres.Open(cfg.DBSource1), &gorm.Config{})
 	if err != nil {
 		panic("Failed to connect to database!")
 	}
 
-	//err = db.Debug().AutoMigrate(User{}, Token{})
-	//if err != nil {
-	//	panic("migration error")
-	//}
+	DB1 = db1
 
-	DB = db
+	if cfg.DBSource2 != "" {
+		db2, err := gorm.Open(postgres.Open(cfg.DBSource2), &gorm.Config{})
+		if err != nil {
+			panic("Failed to connect to database!")
+		}
+		DB2 = db2
+	}
+
+	DB = db1
 }
