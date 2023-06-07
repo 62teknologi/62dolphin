@@ -78,6 +78,8 @@ func (adp *GoogleAdapter) Callback(ctx *gin.Context) (*oauth2.Token, error) {
 	)
 
 	fmt.Println(redirectUrl)
+	fmt.Println(token)
+	fmt.Println(profile)
 
 	return token, err
 }

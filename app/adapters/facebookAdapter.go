@@ -1,7 +1,9 @@
 package adapters
 
 import (
+	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/62teknologi/62dolphin/app/config"
@@ -42,11 +44,30 @@ func (adp *FacebookAdapter) Callback(ctx *gin.Context) (*oauth2.Token, error) {
 		return nil, err
 	}
 
-	/*
-		TODO : Do something with the token, such as getting the user's email address
-			using the Facebook API and redirect to client register page
-	*/
-	fmt.Println("Facebook token: %+v", token)
+	client := adp.config.Client(ctx, token)
+
+	response, err := client.Get(facebook.Endpoint.TokenURL + "/me?fields=id,name,email")
+	if err != nil {
+		fmt.Println("Failed to fetch user profile:", err)
+	}
+	defer response.Body.Close()
+
+	// Parse the user profile JSON response
+	// Customize this based on your application's needs
+	var profile struct {
+		ID    string `json:"id"`
+		Name  string `json:"name"`
+		Email string `json:"email"`
+	}
+
+	err = json.NewDecoder(response.Body).Decode(&profile)
+
+	if err != nil {
+		log.Println("Failed to decode user profile:", err)
+	}
+
+	fmt.Println(token)
+	fmt.Println(profile)
 
 	return token, nil
 }
