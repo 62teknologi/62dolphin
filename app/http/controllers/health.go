@@ -1,22 +1,22 @@
 package controllers
 
 import (
-	"dolphin/app/utils"
 	"net/http"
 	"net/url"
 	"strings"
+
+	"github.com/62teknologi/62dolphin/62golib/utils"
+	"github.com/62teknologi/62dolphin/app/config"
 
 	"github.com/gin-gonic/gin"
 )
 
 func CheckAppHealth(c *gin.Context) {
-	config, _ := utils.LoadConfig(".")
-
 	dbConn, _ := utils.DB.DB()
-	parsedDsn, _ := url.Parse(config.DBSource1)
+	parsedDsn, _ := url.Parse(config.Data.DBSource1)
 
 	if c.Query("db") == "2" {
-		parsedDsn, _ = url.Parse(config.DBSource2)
+		parsedDsn, _ = url.Parse(config.Data.DBSource2)
 	}
 
 	host := parsedDsn.Host

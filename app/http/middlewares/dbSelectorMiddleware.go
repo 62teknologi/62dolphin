@@ -1,12 +1,11 @@
 package middlewares
 
 import (
-	"dolphin/app/utils"
+	"github.com/62teknologi/62dolphin/62golib/utils"
 
 	"github.com/gin-gonic/gin"
 )
 
-// AuthMiddleware creates a gin middleware for authorization
 func DbSelectorMiddleware() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 
@@ -15,9 +14,6 @@ func DbSelectorMiddleware() gin.HandlerFunc {
 		} else {
 			utils.DB = utils.DB1
 		}
-		//DB = ctx.query(db) ??  DB1;
-
-		// ctx.Set(authorizationPayloadKey, payload)
 		ctx.Next()
 	}
 }

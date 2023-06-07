@@ -1,25 +1,29 @@
 package main
 
 import (
-	"dolphin/app/http/controllers"
-	"dolphin/app/http/middlewares"
-	"dolphin/app/tokens"
-	"dolphin/app/utils"
 	"fmt"
+
+	"github.com/62teknologi/62dolphin/62golib/utils"
+	"github.com/62teknologi/62dolphin/app/config"
+	"github.com/62teknologi/62dolphin/app/http/controllers"
+	"github.com/62teknologi/62dolphin/app/http/middlewares"
+	"github.com/62teknologi/62dolphin/app/tokens"
 
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
-	config, err := utils.LoadConfig(".")
+
+	configs, err := config.LoadConfig(".", &config.Data)
 	if err != nil {
 		fmt.Printf("cannot load config: %w", err)
 		return
 	}
 
-	utils.ConnectDatabase(config)
+	// todo : replace last variable with spread notation "..."
+	utils.ConnectDatabase(configs.DBDriver, configs.DBSource1, configs.DBSource2)
 
-	tokenMaker, err := tokens.NewJWTMaker(config.TokenSymmetricKey)
+	tokenMaker, err := tokens.NewJWTMaker(configs.TokenSymmetricKey)
 	if err != nil {
 		fmt.Printf("cannot create token maker: %w", err)
 		return
@@ -36,45 +40,20 @@ func main() {
 	//todo use middleware db selector
 	apiV1 := r.Group("/api/v1").Use(middlewares.DbSelectorMiddleware())
 	{
-
-		/*
-			Auth
-		*/
 		apiV1.POST("/auth/sign-in", controllers.SignIn)
 		apiV1.POST("/auth/sign-up", controllers.CreateUser)
 
-		apiV1.GET("/auth/google", controllers.GoogleLogin)
-		// TODO need to change to apiV1
-		r.GET("/auth/callback/google", controllers.GoogleCallback)
+		// adapter : facebook, microsoft, google
+		apiV1.GET("/auth/:adapter", controllers.Login)
+		apiV1.GET("/auth/:adapter/callback", controllers.Callback)
 
-		apiV1.GET("/auth/facebook", controllers.FacebookLogin)
-		apiV1.GET("/auth/callback/facebook", controllers.FacebookCallback)
-
-		apiV1.GET("/auth/microsoft", controllers.MicrosoftLogin)
-		apiV1.GET("/auth/callback/microsoft", controllers.MicrosoftCallback)
-
-		apiV1.POST("/auth/privy/register", controllers.PrivyRegister)
-		apiV1.GET("/auth/privy/register/otp", controllers.PrivyOtp)
-		apiV1.POST("/auth/privy/register/status", controllers.PrivyRegisterStatus)
-		apiV1.GET("/auth/privy", controllers.PrivyLogin)
-		apiV1.GET("/auth/privy/callback", controllers.PrivyCallback)
-
-		/*
-			Tokens
-		*/
 		apiV1.POST("/tokens/create", controllers.CreateAccessToken)
 		apiV1.POST("/tokens/verify", controllers.VerifyAccessToken)
 		apiV1.POST("/tokens/refresh", controllers.RenewAccessToken)
 
-		/*
-			Passwords
-		*/
-		apiV1.POST("/passwords/forgot-password", controllers.ForgotPassword)
-		apiV1.PATCH("/passwords/reset-password/:token", controllers.ResetPassword)
+		apiV1.POST("/passwords/forgot", controllers.ForgotPassword)
+		apiV1.PATCH("/passwords/reset/:token", controllers.ResetPassword)
 
-		/*
-			Users
-		*/
 		apiV1.GET("/users", controllers.FindUsers)
 		apiV1.POST("/users", controllers.CreateUser)
 		apiV1.GET("/users/:id", controllers.FindUser)
@@ -83,19 +62,12 @@ func main() {
 
 	authorizedV1 := r.Group("/api/v1").Use(middlewares.AuthMiddleware(tokenMaker))
 	{
-		/*
-			Tokens
-		*/
 		authorizedV1.POST("/tokens/block-token", controllers.BlockRefreshToken)
-
-		/*
-			Users
-		*/
 		authorizedV1.PUT("/users/:id", controllers.UpdateUser)
 		authorizedV1.DELETE("/users/:id", controllers.DeleteUser)
 	}
 
-	err = r.Run(config.HTTPServerAddress)
+	err = r.Run(configs.HTTPServerAddress)
 	if err != nil {
 		fmt.Printf("cannot run server: %w", err)
 		return

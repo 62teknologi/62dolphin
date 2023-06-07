@@ -1,140 +1,37 @@
 package controllers
 
 import (
-	"dolphin/app/auth"
-	"dolphin/app/tokens"
-	"dolphin/app/utils"
 	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/62teknologi/62dolphin/62golib/utils"
+	"github.com/62teknologi/62dolphin/app/adapters"
+	"github.com/62teknologi/62dolphin/app/config"
+	"github.com/62teknologi/62dolphin/app/interfaces"
+	"github.com/62teknologi/62dolphin/app/tokens"
+	dutils "github.com/62teknologi/62dolphin/app/utils"
+
 	"github.com/dbssensei/ordentmarketplace/util"
 	"github.com/gin-gonic/gin"
-	"github.com/goccy/go-json"
-	"golang.org/x/oauth2"
-	"google.golang.org/api/option"
-	"google.golang.org/api/people/v1"
 )
 
-var googleAdapter = auth.NewGoogleOAuth()
-
-func GoogleLogin(ctx *gin.Context) {
-	ctx.Redirect(http.StatusTemporaryRedirect, googleAdapter.GenerateLoginURL())
+func Login(ctx *gin.Context) {
+	var adapter interfaces.AuthInterface = adapters.GetAdapter(ctx.Param("adapter")).Init()
+	ctx.Redirect(http.StatusTemporaryRedirect, adapter.GenerateLoginURL())
 }
 
-func GoogleCallback(ctx *gin.Context) {
-	config, err := utils.LoadConfig(".")
-	if err != nil {
-		fmt.Errorf("cannot load config: %w", err)
-		return
-	}
-
-	token, err := googleAdapter.LoginCallback(ctx)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", "Error getting token from Google", nil))
-		return
-	}
-
-	profile, err := getProfileFromGoogle(ctx, token)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", "Error getting data user from Google", nil))
-		return
-	}
-
-	var googleProfile auth.OAuthProfile
-
-	if profile.Names != nil {
-		googleProfile.Name = profile.Names[0].DisplayName
-	}
-	if profile.EmailAddresses != nil {
-		googleProfile.Email = profile.EmailAddresses[0].Value
-	}
-	if profile.PhoneNumbers != nil {
-		googleProfile.Phone = profile.PhoneNumbers[0].Value
-	}
-	if profile.Birthdays != nil {
-		googleProfile.Birthday = profile.Birthdays[0].Text
-	}
-	if profile.Photos != nil {
-		googleProfile.Photo = profile.Photos[0].Url
-	}
-
-	redirectUrl := fmt.Sprintf("%s/auth/google/callback?name=%s&email=%s&phone=%s&birthday=%s&photo=%s",
-		config.MonolithUrl+"/api/v1",
-		googleProfile.Name,
-		googleProfile.Email,
-		googleProfile.Phone,
-		googleProfile.Birthday,
-		googleProfile.Photo,
-	)
-
-	ctx.Redirect(http.StatusTemporaryRedirect, redirectUrl)
-}
-
-func getProfileFromGoogle(ctx *gin.Context, token *oauth2.Token) (*people.Person, error) {
-	client := oauth2.NewClient(ctx, oauth2.StaticTokenSource(token))
-	service, err := people.NewService(ctx, option.WithHTTPClient(client))
-	if err != nil {
-		return nil, err
-	}
-	profile, err := service.People.Get("people/me").PersonFields("names,emailAddresses,phoneNumbers,birthdays,photos").Do()
-	if err != nil {
-		return nil, err
-	}
-	return profile, nil
-}
-
-var facebookAdapter = auth.NewFacebookOAuth()
-
-func FacebookLogin(ctx *gin.Context) {
-	ctx.Redirect(http.StatusTemporaryRedirect, facebookAdapter.GenerateLoginURL())
-}
-
-func FacebookCallback(ctx *gin.Context) {
-	token, err := facebookAdapter.LoginCallback(ctx)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", "Error getting token from Facebook", nil))
-		return
-	}
-
-	/*
-		TODO : Do something with the token, such as getting the user's email address
-			using the Facebook API and redirect to client register page
-	*/
-	fmt.Println("Facebook token: %+v", token)
-}
-
-var microsoftAdapter = auth.NewMicrosoftOAuth()
-
-func MicrosoftLogin(ctx *gin.Context) {
-	ctx.Redirect(http.StatusTemporaryRedirect, microsoftAdapter.GenerateLoginURL())
-}
-
-func MicrosoftCallback(ctx *gin.Context) {
-	token, err := microsoftAdapter.LoginCallback(ctx)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", "Error getting token from Microsoft", nil))
-		return
-	}
-
-	// Use the token to access the user's profile.
-	/*
-		TODO : Do something with the token, such as getting the user's email address
-			using the Microsoft API and redirect to client register page
-	*/
-	fmt.Println("Microsoft token: %+v", token)
+func Callback(ctx *gin.Context) {
+	var adapter interfaces.AuthInterface = adapters.GetAdapter(ctx.Param("adapter")).Init()
+	adapter.Callback(ctx)
 }
 
 func SignIn(ctx *gin.Context) {
-	config, err := utils.LoadConfig(".")
-	if err != nil {
-		fmt.Errorf("cannot load config: %w", err)
-		return
-	}
+	tokenMaker, err := tokens.NewJWTMaker(config.Data.TokenSymmetricKey)
 
-	tokenMaker, err := tokens.NewJWTMaker(config.TokenSymmetricKey)
+	fmt.Println("ini")
 	if err != nil {
 		fmt.Errorf("cannot create token maker: %w", err)
 		return
@@ -152,6 +49,8 @@ func SignIn(ctx *gin.Context) {
 
 	// Query database and additional query
 	var user map[string]any
+
+	fmt.Println(input["email"])
 	utils.DB.Table("users").Where(utils.DB.Where("email = ?", input["email"])).Take(&user)
 
 	if user["id"] == nil {
@@ -168,7 +67,7 @@ func SignIn(ctx *gin.Context) {
 	uId, _ := strconv.ParseInt(fmt.Sprintf("%v", user["id"]), 10, 32)
 	accessToken, accessPayload, err := tokenMaker.CreateToken(
 		int32(uId),
-		config.AccessTokenDuration,
+		config.Data.AccessTokenDuration,
 	)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", err.Error(), nil))
@@ -177,7 +76,7 @@ func SignIn(ctx *gin.Context) {
 
 	refreshToken, refreshPayload, err := tokenMaker.CreateToken(
 		int32(uId),
-		config.RefreshTokenDuration,
+		config.Data.RefreshTokenDuration,
 	)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", err.Error(), nil))
@@ -250,7 +149,7 @@ func ForgotPassword(ctx *gin.Context) {
 
 	if input["method"] == "email" {
 		// Generate and create OTP
-		otpCode, _ := utils.GenerateOTP(8)
+		otpCode, _ := dutils.GenerateOTP(8)
 		otpParams := map[string]any{
 			"type":       "email",
 			"code":       otpCode,
@@ -266,7 +165,7 @@ func ForgotPassword(ctx *gin.Context) {
 		}
 
 		// Setup email sender
-		receiverList := []utils.EmailReceiver{
+		receiverList := []dutils.EmailReceiver{
 			{
 				Name:    input["receiver"].(string),
 				Address: input["receiver"].(string),
@@ -275,13 +174,13 @@ func ForgotPassword(ctx *gin.Context) {
 
 		// Send email verification
 		go func() {
-			resetToken := utils.Encode(fmt.Sprintf("email#%v#%v", otpCode, input["receiver"]))
+			resetToken := dutils.Encode(fmt.Sprintf("email#%v#%v", otpCode, input["receiver"]))
 			emailData := emailForgotPasswordParams{
 				URL:     input["redirect_url"].(string) + resetToken,
 				Name:    input["receiver"].(string),
 				Subject: "Your password reset token (valid for 10min)",
 			}
-			utils.EmailSender("forgot_password.html", emailData, receiverList)
+			dutils.EmailSender("forgot_password.html", emailData, receiverList)
 		}()
 	}
 
@@ -301,7 +200,7 @@ func ResetPassword(ctx *gin.Context) {
 	}
 
 	// decodePasswordToken should return <otp type>#<otp code>#<otp content>
-	decodePasswordToken, err := utils.Decode(ctx.Param("token"))
+	decodePasswordToken, err := dutils.Decode(ctx.Param("token"))
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", err.Error(), nil))
 		return
@@ -339,192 +238,4 @@ func ResetPassword(ctx *gin.Context) {
 	fmt.Println(user)
 
 	ctx.JSON(http.StatusOK, utils.ResponseData("success", "reset password successfully", nil))
-}
-
-type privyRequest struct {
-	ReferenceNumber string `json:"reference_number"`
-	ChannelId       string `json:"channel_id"`
-	Info            string `json:"info"`
-	Email           string `json:"email"`
-	Phone           string `json:"phone"`
-	Nik             string `json:"nik"`
-	Name            string `json:"name"`
-	Dob             string `json:"dob"`
-	Selfie          string `json:"selfie"`
-	Identity        string `json:"identity"`
-}
-
-type privyResponse struct {
-	ReferenceNumber string        `json:"reference_number"`
-	RegisterToken   string        `json:"register_token"`
-	Status          string        `json:"status"`
-	ChannelId       string        `json:"channel_id"`
-	PrivyId         string        `json:"privy_id"`
-	Email           string        `json:"email"`
-	Phone           string        `json:"phone"`
-	Identity        privyIdentity `json:"identity"`
-}
-
-type privyIdentity struct {
-	Nik          string `json:"nik"`
-	Name         string `json:"name"`
-	TanggalLahir string `json:"tanggal_lahir"`
-}
-
-func PrivyRegister(ctx *gin.Context) {
-	var req privyRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", err.Error(), nil))
-		return
-	}
-
-	jsonBody, _ := json.Marshal(req)
-	var objBd map[string]interface{}
-	if err := json.Unmarshal(jsonBody, &objBd); err != nil {
-		panic(err)
-	}
-
-	privyAccessToken := privyAdapter.GetAccessToken()
-	privyRegsCredentials := privyAdapter.GenerateCredentials(objBd, "")
-	privyRegs := privyAdapter.RegisterUser(objBd, privyAccessToken, privyRegsCredentials["timestamp"], privyRegsCredentials["signature"], privyRegsCredentials["reference_number"])
-
-	ctx.JSON(http.StatusOK, utils.ResponseData("success", "success create privy user", privyRegs))
-}
-
-func PrivyOtp(ctx *gin.Context) {
-	var privyRegisterLog map[string]any
-	utils.DB.Table("privy_register_logs").Where("user_email = ?", ctx.Query("email")).Order("id desc").Take(&privyRegisterLog)
-
-	if privyRegisterLog["id"] == nil {
-		ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", "no user registered with email "+ctx.Query("email"), nil))
-		return
-	}
-
-	ctx.Redirect(http.StatusPermanentRedirect, privyRegisterLog["registration_url"].(string))
-}
-
-func PrivyRegisterStatus(ctx *gin.Context) {
-	var req struct {
-		Email string `json:"email" binding:"email,required"`
-	}
-
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", err.Error(), nil))
-		return
-	}
-
-	var privyRegisterLog map[string]any
-	utils.DB.Table("privy_register_logs").Where("user_email = ?", req.Email).Order("id desc").Take(&privyRegisterLog)
-
-	if privyRegisterLog["id"] == nil {
-		ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", "no new user registered with email "+req.Email, nil))
-		return
-	}
-
-	jsonBody, _ := json.Marshal(map[string]any{
-		"register_token": privyRegisterLog["register_token"],
-	})
-	var objBd map[string]interface{}
-	if err := json.Unmarshal(jsonBody, &objBd); err != nil {
-		panic(err)
-	}
-
-	privyAccessToken := privyAdapter.GetAccessToken()
-	privyRegsCredentials := privyAdapter.GenerateCredentials(objBd, privyRegisterLog["reference_number"].(string))
-	privyRegs := privyAdapter.RegisterStatus(objBd, privyAccessToken, privyRegsCredentials["timestamp"], privyRegsCredentials["signature"], privyRegsCredentials["reference_number"])
-
-	ctx.JSON(http.StatusOK, utils.ResponseData("success", "success get privy register status", privyRegs))
-}
-
-var privyAdapter = auth.NewPrivyOAuth()
-
-func PrivyLogin(ctx *gin.Context) {
-	ctx.Redirect(http.StatusTemporaryRedirect, privyAdapter.GenerateLoginURL())
-}
-
-func PrivyCallback(ctx *gin.Context) {
-	config, err := utils.LoadConfig(".")
-	if err != nil {
-		fmt.Errorf("cannot load config: %w", err)
-		return
-	}
-
-	code := ctx.Query("code")
-	fmt.Println("CALLBACK CODE", code)
-
-	token, err := privyAdapter.LoginCallback(ctx)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", "Error getting token from Privy", nil))
-		return
-	}
-
-	var privyLoginLog map[string]any
-	utils.DB.Table("privy_login_logs").Where("token = ?", code).Order("id desc").Take(&privyLoginLog)
-	fmt.Println("privyLoginLog", privyLoginLog)
-
-	var profile map[string]any
-
-	if privyLoginLog["id"] == nil {
-		privyProfile, err := getProfileFromPrivy(config, token)
-		if err != nil {
-			ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", "Error getting data user from Privy", nil))
-			return
-		}
-
-		profile = privyProfile
-
-		_ = utils.DB.Table("privy_login_logs").Create(map[string]any{
-			"application_id": profile["data"].(map[string]any)["application_id"],
-			"authorized_at":  profile["data"].(map[string]any)["authorized_at"],
-			"contact":        profile["data"].(map[string]any)["contact"],
-			"identity":       profile["data"].(map[string]any)["identity"],
-			"created_at":     time.Now(),
-			"updated_at":     time.Now(),
-		})
-	} else {
-		var contact map[string]any
-		_ = json.Unmarshal([]byte(privyLoginLog["contact"].(string)), &contact)
-		privyLoginLog["contact"] = contact
-
-		var identity map[string]any
-		_ = json.Unmarshal([]byte(privyLoginLog["identity"].(string)), &identity)
-		privyLoginLog["identity"] = identity
-
-		profile = map[string]any{"data": privyLoginLog}
-	}
-
-	profileJson, _ := json.Marshal(profile)
-	redirectUrl := fmt.Sprintf("%s/auth/privy/callback?token=%v", config.MonolithUrl+"/api/v1", utils.Encode(string(profileJson)))
-	ctx.Header("Authorization", "Basic "+utils.Encode(config.ApiKey))
-	ctx.Redirect(http.StatusTemporaryRedirect, redirectUrl)
-}
-
-func getProfileFromPrivy(config utils.Config, token *oauth2.Token) (map[string]any, error) {
-	// create HTTP request with POST method and request body
-	req, err := http.NewRequest("GET", config.PrivyAuthGetUserExchangeUrl, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	// set request headers
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+token.AccessToken)
-
-	// send HTTP request
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	// read HTTP response body
-	var response map[string]any
-	err = json.NewDecoder(resp.Body).Decode(&response)
-	if err != nil {
-		return nil, err
-	}
-
-	// print HTTP response status code and body
-	return response, nil
 }

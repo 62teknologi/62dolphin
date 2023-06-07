@@ -1,12 +1,13 @@
 package middlewares
 
 import (
-	"dolphin/app/tokens"
-	"dolphin/app/utils"
 	"errors"
 	"fmt"
 	"net/http"
 	"strings"
+
+	"github.com/62teknologi/62dolphin/app/tokens"
+	"github.com/62teknologi/62dolphin/app/utils"
 
 	"github.com/gin-gonic/gin"
 )

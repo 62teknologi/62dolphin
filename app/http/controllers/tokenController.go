@@ -1,14 +1,17 @@
 package controllers
 
 import (
-	"dolphin/app/tokens"
-	"dolphin/app/utils"
 	"errors"
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"github.com/go-sql-driver/mysql"
 	"net/http"
 	"time"
+
+	"github.com/62teknologi/62dolphin/62golib/utils"
+	"github.com/62teknologi/62dolphin/app/config"
+	"github.com/62teknologi/62dolphin/app/tokens"
+
+	"github.com/gin-gonic/gin"
+	"github.com/go-sql-driver/mysql"
 )
 
 type accessTokenVerifyRequest struct {
@@ -24,13 +27,8 @@ func VerifyAccessToken(ctx *gin.Context) {
 	}
 
 	// Setup and check given token
-	config, err := utils.LoadConfig(".")
-	if err != nil {
-		fmt.Errorf("cannot load config: %w", err)
-		return
-	}
 
-	tokenMaker, err := tokens.NewJWTMaker(config.TokenSymmetricKey)
+	tokenMaker, err := tokens.NewJWTMaker(config.Data.TokenSymmetricKey)
 	if err != nil {
 		fmt.Errorf("cannot create token maker: %w", err)
 		return
@@ -57,13 +55,7 @@ func CreateAccessToken(ctx *gin.Context) {
 		return
 	}
 
-	config, err := utils.LoadConfig(".")
-	if err != nil {
-		fmt.Errorf("cannot load config: %w", err)
-		return
-	}
-
-	tokenMaker, err := tokens.NewJWTMaker(config.TokenSymmetricKey)
+	tokenMaker, err := tokens.NewJWTMaker(config.Data.TokenSymmetricKey)
 	if err != nil {
 		fmt.Errorf("cannot create token maker: %w", err)
 		return
@@ -71,7 +63,7 @@ func CreateAccessToken(ctx *gin.Context) {
 
 	accessToken, accessPayload, err := tokenMaker.CreateToken(
 		req.UserId,
-		config.AccessTokenDuration,
+		config.Data.AccessTokenDuration,
 	)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", err.Error(), nil))
@@ -80,7 +72,7 @@ func CreateAccessToken(ctx *gin.Context) {
 
 	refreshToken, refreshPayload, err := tokenMaker.CreateToken(
 		req.UserId,
-		config.RefreshTokenDuration,
+		config.Data.RefreshTokenDuration,
 	)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", err.Error(), nil))
@@ -136,12 +128,7 @@ func RenewAccessToken(ctx *gin.Context) {
 	}
 
 	// Setup and check given token
-	config, err := utils.LoadConfig(".")
-	if err != nil {
-		fmt.Errorf("cannot load config: %w", err)
-		return
-	}
-	tokenMaker, err := tokens.NewJWTMaker(config.TokenSymmetricKey)
+	tokenMaker, err := tokens.NewJWTMaker(config.Data.TokenSymmetricKey)
 	if err != nil {
 		fmt.Errorf("cannot create token maker: %w", err)
 		return
@@ -188,7 +175,7 @@ func RenewAccessToken(ctx *gin.Context) {
 	// Generate new access token
 	accessToken, accessPayload, err := tokenMaker.CreateToken(
 		refreshPayload.UserId,
-		config.AccessTokenDuration,
+		config.Data.AccessTokenDuration,
 	)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", err.Error(), nil))

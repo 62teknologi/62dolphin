@@ -3,10 +3,13 @@ package utils
 import (
 	"bytes"
 	"fmt"
-	"gopkg.in/gomail.v2"
 	"html/template"
 	"io"
 	"os"
+
+	"github.com/62teknologi/62dolphin/app/config"
+
+	"gopkg.in/gomail.v2"
 )
 
 type EmailReceiver struct {
@@ -15,13 +18,9 @@ type EmailReceiver struct {
 }
 
 func EmailSender(htmlTemplate string, params any, receiverList []EmailReceiver) {
-	config, err := LoadConfig(".")
-	if err != nil {
-		fmt.Errorf("error while load config: %w", err)
-		return
-	}
+	configs := config.Data
 
-	d := gomail.NewDialer(config.EmailSMTPHost, config.EmailSMTPPort, config.EmailAUTHUsername, config.EmailAUTHPassword)
+	d := gomail.NewDialer(configs.EmailSMTPHost, configs.EmailSMTPPort, configs.EmailAUTHUsername, configs.EmailAUTHPassword)
 	s, err := d.Dial()
 	if err != nil {
 		fmt.Errorf("error while setup email config: %w", err)
@@ -63,7 +62,7 @@ func EmailSender(htmlTemplate string, params any, receiverList []EmailReceiver) 
 
 	m := gomail.NewMessage()
 	for _, r := range receiverList {
-		m.SetHeader("From", config.EmailSenderName)
+		m.SetHeader("From", configs.EmailSenderName)
 		m.SetAddressHeader("To", r.Address, r.Name)
 		m.SetHeader("Subject", "Newsletter #1")
 		m.SetBody("text/html", html)

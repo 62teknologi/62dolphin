@@ -1,12 +1,14 @@
 package controllers
 
 import (
-	"dolphin/app/utils"
 	"errors"
 	"fmt"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/62teknologi/62dolphin/62golib/utils"
+	dutils "github.com/62teknologi/62dolphin/app/utils"
 
 	"github.com/dbssensei/ordentmarketplace/util"
 	"github.com/go-sql-driver/mysql"
@@ -118,7 +120,7 @@ func CreateUser(ctx *gin.Context) {
 
 	// Generate and create OTP if otp option is active
 	if otpOptions["otp"] == true {
-		otpCode, _ := utils.GenerateOTP(8)
+		otpCode, _ := dutils.GenerateOTP(8)
 		otpParams := map[string]any{
 			"type":       otpOptions["otp_method"],
 			"code":       otpCode,
@@ -134,7 +136,7 @@ func CreateUser(ctx *gin.Context) {
 		}
 
 		// Setup email sender
-		receiverList := []utils.EmailReceiver{
+		receiverList := []dutils.EmailReceiver{
 			{
 				Name:    "Dimas",
 				Address: input["email"].(string),
@@ -143,7 +145,7 @@ func CreateUser(ctx *gin.Context) {
 
 		// Send email verification
 		go func() {
-			utils.EmailSender("verify_user.html", otpVerificationParams{OtpReceiver: otpOptions["otp_receiver"].(string), OtpCode: otpCode}, receiverList)
+			dutils.EmailSender("verify_user.html", otpVerificationParams{OtpReceiver: otpOptions["otp_receiver"].(string), OtpCode: otpCode}, receiverList)
 		}()
 	}
 
