@@ -14,7 +14,23 @@ func GetAdapter(name string) interfaces.AuthInterface {
 		adapter = &FacebookAdapter{}
 	case "microsoft":
 		adapter = &MicrosoftAdapter{}
+	case "local":
+		adapter = &LocalAdapter{}
 	}
 
 	return adapter
+}
+
+type Profile struct {
+	Gid       string `json:"google_id"`
+	Fbid      string `json:"facebook_id"`
+	Name      string `json:"name"`
+	Email     string `json:"email"`
+	Phone     string `json:"phone"`
+	Photo     string `json:"photo"`
+	Gender    string `json:"gender"`
+	Birthdate string `json:"birtdate"`
+	AgeMin    int    `json:"age_min"`
+	AgeMax    int    `json:"age_max"`
+	AgeRange  string `json:"age_range"`
 }

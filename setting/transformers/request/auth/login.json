@@ -1,0 +1,6 @@
+{
+  "email": "required|email",
+  "username": "required",
+  "password": "required",
+  "platform_id": 0
+}

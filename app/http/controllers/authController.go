@@ -3,7 +3,6 @@ package controllers
 import (
 	"fmt"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
@@ -11,7 +10,6 @@ import (
 	"github.com/62teknologi/62dolphin/app/adapters"
 	"github.com/62teknologi/62dolphin/app/config"
 	"github.com/62teknologi/62dolphin/app/interfaces"
-	"github.com/62teknologi/62dolphin/app/tokens"
 	dutils "github.com/62teknologi/62dolphin/app/utils"
 
 	"github.com/dbssensei/ordentmarketplace/util"
@@ -28,99 +26,6 @@ func Callback(ctx *gin.Context) {
 	adapter.Callback(ctx)
 }
 
-func SignIn(ctx *gin.Context) {
-	tokenMaker, err := tokens.NewJWTMaker(config.Data.TokenSymmetricKey)
-
-	fmt.Println("ini")
-	if err != nil {
-		fmt.Errorf("cannot create token maker: %w", err)
-		return
-	}
-
-	// build and cleansing login input from json file
-	input, err := utils.JsonFileParser("transformers/request/auth/login.json")
-	var requestBody map[string]any
-	if err := ctx.BindJSON(&requestBody); err != nil {
-		ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", err.Error(), nil))
-		return
-	}
-	utils.MapValuesShifter(input, requestBody)
-	utils.MapNullValuesRemover(input)
-
-	// Query database and additional query
-	var user map[string]any
-
-	fmt.Println(input["email"])
-	utils.DB.Table("users").Where(utils.DB.Where("email = ?", input["email"])).Take(&user)
-
-	if user["id"] == nil {
-		ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", "invalid email or password", nil))
-		return
-	}
-
-	err = util.CheckPassword(input["password"].(string), user["password"].(string))
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", "invalid email or password", nil))
-		return
-	}
-
-	uId, _ := strconv.ParseInt(fmt.Sprintf("%v", user["id"]), 10, 32)
-	accessToken, accessPayload, err := tokenMaker.CreateToken(
-		int32(uId),
-		config.Data.AccessTokenDuration,
-	)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", err.Error(), nil))
-		return
-	}
-
-	refreshToken, refreshPayload, err := tokenMaker.CreateToken(
-		int32(uId),
-		config.Data.RefreshTokenDuration,
-	)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", err.Error(), nil))
-		return
-	}
-
-	// Store sessions data to DB
-	params := map[string]any{
-		"id":            refreshPayload.Id,
-		"user_id":       int32(uId),
-		"refresh_token": refreshToken,
-		"platform_id":   int32(input["platform_id"].(float64)),
-		"is_blocked":    false,
-		"expires_at":    refreshPayload.ExpiredAt,
-		"created_at":    time.Now(),
-		"updated_at":    time.Now(),
-	}
-
-	session := utils.DB.Table("tokens").Create(&params)
-	if session.Error != nil {
-		ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", fmt.Sprintf("%v", session.Error.Error()), nil))
-	}
-
-	// Setup output to client
-	defaultResponse := map[string]any{
-		"session_id":               params["id"],
-		"access_token":             accessToken,
-		"access_token_expires_at":  accessPayload.ExpiredAt,
-		"refresh_token":            refreshToken,
-		"refresh_token_expires_at": refreshPayload.ExpiredAt,
-		"platform_id":              params["platform_id"],
-	}
-
-	customResponse, err := utils.JsonFileParser("transformers/response/auth/login.json")
-	customUser := customResponse["user"]
-
-	utils.MapValuesShifter(customResponse, defaultResponse)
-	if customUser != nil {
-		utils.MapValuesShifter(customUser.(map[string]any), user)
-	}
-
-	ctx.JSON(http.StatusOK, utils.ResponseData("success", "sign-in successfully", customResponse))
-}
-
 type emailForgotPasswordParams struct {
 	URL     string
 	Name    string
@@ -129,7 +34,7 @@ type emailForgotPasswordParams struct {
 
 func ForgotPassword(ctx *gin.Context) {
 	// Parse and cleaning input
-	input, err := utils.JsonFileParser("transformers/request/auth/forgot_password.json")
+	input, err := utils.JsonFileParser(config.Data.SettingPath + "/transformers/request/auth/forgot_password.json")
 	var userInput map[string]any
 	if err = ctx.BindJSON(&userInput); err != nil {
 		ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", err.Error(), nil))

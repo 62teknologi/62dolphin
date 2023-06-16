@@ -40,10 +40,10 @@ func main() {
 	//todo use middleware db selector
 	apiV1 := r.Group("/api/v1").Use(middlewares.DbSelectorMiddleware())
 	{
-		apiV1.POST("/auth/sign-in", controllers.SignIn)
+		//apiV1.POST("/auth/sign-in", controllers.SignIn)
 		apiV1.POST("/auth/sign-up", controllers.CreateUser)
 
-		// adapter : facebook, microsoft, google
+		// adapter : local, facebook, microsoft, google
 		apiV1.GET("/auth/:adapter", controllers.Login)
 		apiV1.GET("/auth/:adapter/callback", controllers.Callback)
 

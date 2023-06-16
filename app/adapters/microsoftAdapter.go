@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/62teknologi/62dolphin/62golib/utils"
 	"github.com/62teknologi/62dolphin/app/config"
 	"github.com/62teknologi/62dolphin/app/interfaces"
-	"github.com/62teknologi/62dolphin/app/utils"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/microsoft"
@@ -33,12 +33,12 @@ func (adp *MicrosoftAdapter) GenerateLoginURL() string {
 	return url
 }
 
-func (adp *MicrosoftAdapter) Callback(ctx *gin.Context) (*oauth2.Token, error) {
+func (adp *MicrosoftAdapter) Callback(ctx *gin.Context) error {
 	code := ctx.Query("code")
 	token, err := adp.config.Exchange(ctx, code)
 	if err != nil {
 		fmt.Println(http.StatusInternalServerError, utils.ResponseData("error", "Error getting token from Microsoft", nil))
-		return nil, err
+		return err
 	}
 
 	// Use the token to access the user's profile.
@@ -48,5 +48,5 @@ func (adp *MicrosoftAdapter) Callback(ctx *gin.Context) (*oauth2.Token, error) {
 	*/
 	fmt.Println("Microsoft token: %+v", token)
 
-	return token, nil
+	return nil
 }
