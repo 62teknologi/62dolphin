@@ -1,6 +1,7 @@
 package adapters
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -42,7 +43,7 @@ func (adp *LocalAdapter) Callback(ctx *gin.Context) error {
 
 	if validation, err := utils.Validate(input, transformer); err {
 		utils.LogJson(validation.Errors)
-		return adp
+		return errors.New("validation error")
 	}
 
 	utils.MapValuesShifter(transformer, input)
@@ -57,7 +58,12 @@ func (adp *LocalAdapter) Callback(ctx *gin.Context) error {
 	ctx.Set("transformer", transformer)
 	ctx.Set("input", input)
 
-	user := adp.getProfile(ctx)
+	user, err := adp.getProfile(ctx)
+
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", err.Error(), nil))
+		return err
+	}
 
 	uId, _ := strconv.ParseInt(fmt.Sprintf("%v", user["id"]), 10, 32)
 
@@ -84,7 +90,7 @@ func (adp *LocalAdapter) Callback(ctx *gin.Context) error {
 		"id":            refreshPayload.Id,
 		"user_id":       int32(uId),
 		"refresh_token": refreshToken,
-		"platform_id":   int32(input["platform_id"].(float64)),
+		"platform_id":   int32(transformer["platform_id"].(float64)),
 		"is_blocked":    false,
 		"expires_at":    refreshPayload.ExpiredAt,
 		"created_at":    time.Now(),
@@ -118,23 +124,17 @@ func (adp *LocalAdapter) Callback(ctx *gin.Context) error {
 	return nil
 }
 
-func (adp *LocalAdapter) getProfile(ctx *gin.Context) map[string]any {
+func (adp *LocalAdapter) getProfile(ctx *gin.Context) (map[string]any, error) {
 	transformer := ctx.MustGet("transformer").(map[string]any)
-	utils.LogJson(transformer)
-
 	input := ctx.MustGet("input").(map[string]any)
 
 	utils.DB.Table("users").Where(utils.DB.Where("email = ?", transformer["email"])).Take(&transformer)
 
 	if transformer["id"] == nil {
-		ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", "invalid email", nil))
+		return transformer, errors.New("Invalid Email")
 	} else if err := util.CheckPassword(input["password"].(string), transformer["password"].(string)); err != nil {
-		ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", "invalid password", nil))
+		return transformer, err
 	}
 
-	return transformer
-}
-
-func (adp *LocalAdapter) Error() string {
-	return "something went wrongs"
+	return transformer, nil
 }

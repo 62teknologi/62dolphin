@@ -46,6 +46,7 @@ func main() {
 		// adapter : local, facebook, microsoft, google
 		apiV1.GET("/auth/:adapter", controllers.Login)
 		apiV1.GET("/auth/:adapter/callback", controllers.Callback)
+		apiV1.POST("/auth/:adapter/callback", controllers.Callback)
 
 		apiV1.POST("/tokens/create", controllers.CreateAccessToken)
 		apiV1.POST("/tokens/verify", controllers.VerifyAccessToken)

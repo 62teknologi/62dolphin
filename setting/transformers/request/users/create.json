@@ -1,7 +1,4 @@
 {
-    "otp": true,
-    "otp_method": "",
-    "otp_receiver": "",
     "email": "email|required",
     "password": "required",
     "username": "",
