@@ -73,7 +73,7 @@ func (adp *GoogleAdapter) getProfile(ctx *gin.Context) (*Profile, error) {
 	Profile := Profile{}
 
 	if gProfile.Names != nil {
-		Profile.Gid = gProfile.Names[0].Metadata.Source.Id
+		Profile.ID = gProfile.Names[0].Metadata.Source.Id
 		Profile.Name = gProfile.Names[0].DisplayName
 	}
 

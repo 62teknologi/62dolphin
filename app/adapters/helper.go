@@ -22,8 +22,7 @@ func GetAdapter(name string) interfaces.AuthInterface {
 }
 
 type Profile struct {
-	Gid       string `json:"google_id"`
-	Fbid      string `json:"facebook_id"`
+	ID        string `json:"id"`
 	Name      string `json:"name"`
 	Email     string `json:"email"`
 	Phone     string `json:"phone"`

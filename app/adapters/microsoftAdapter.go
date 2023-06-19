@@ -2,6 +2,8 @@ package adapters
 
 import (
 	"fmt"
+	"github.com/goccy/go-json"
+	"io"
 	"net/http"
 
 	"github.com/62teknologi/62dolphin/62golib/utils"
@@ -17,36 +19,74 @@ type MicrosoftAdapter struct {
 }
 
 func (adp *MicrosoftAdapter) Init() interfaces.AuthInterface {
+	microsoftEndpoint := microsoft.AzureADEndpoint(config.Data.MicrosoftAuthTenantId)
 	adp.config = &oauth2.Config{
 		ClientID:     config.Data.MicrosoftAuthClientId,
 		ClientSecret: config.Data.MicrosoftAuthClientSecret,
 		RedirectURL:  config.Data.MicrosoftAuthRedirectUrl,
-		Scopes:       []string{"email"},
-		Endpoint:     microsoft.AzureADEndpoint(config.Data.MicrosoftAuthTenantId),
+		Scopes:       []string{"User.Read"},
+		Endpoint:     microsoftEndpoint,
 	}
 
 	return adp
 }
 
 func (adp *MicrosoftAdapter) GenerateLoginURL() string {
-	url := adp.config.AuthCodeURL("")
+	url := adp.config.AuthCodeURL("state", oauth2.AccessTypeOffline)
 	return url
 }
 
 func (adp *MicrosoftAdapter) Callback(ctx *gin.Context) error {
+	profile, err := adp.getUserProfile(ctx)
+	utils.LogJson(profile)
+
+	return err
+}
+
+type UserProfile struct {
+	ID    string `json:"id"`
+	Name  string `json:"displayName"`
+	Email string `json:"mail"`
+	Phone string `json:"mobilePhone"`
+}
+
+func (adp *MicrosoftAdapter) getUserProfile(ctx *gin.Context) (*Profile, error) {
 	code := ctx.Query("code")
 	token, err := adp.config.Exchange(ctx, code)
+
 	if err != nil {
-		fmt.Println(http.StatusInternalServerError, utils.ResponseData("error", "Error getting token from Microsoft", nil))
-		return err
+		fmt.Println(http.StatusInternalServerError, utils.ResponseData("error", "Error getting token from Facebook", nil))
+		return nil, err
 	}
 
-	// Use the token to access the user's profile.
-	/*
-		TODO : Do something with the token, such as getting the user's email address
-			using the Microsoft API and redirect to client register page
-	*/
-	fmt.Println("Microsoft token: %+v", token)
+	client := adp.config.Client(ctx, token)
+	response, err := client.Get("https://graph.microsoft.com/v1.0/me")
 
-	return nil
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var userProfile UserProfile
+	err = json.Unmarshal(body, &userProfile)
+	if err != nil {
+		return nil, err
+	}
+
+	defer response.Body.Close()
+
+	profile := &Profile{
+		ID:    userProfile.ID,
+		Name:  userProfile.Name,
+		Email: userProfile.Email,
+		Phone: userProfile.Phone,
+		//Photo:     "", // Get profile image has difference url
+		//Gender:    "",
+		//Birthdate: "",
+		//AgeMin:    0,
+		//AgeMax:    0,
+		//AgeRange:  "",
+	}
+
+	return profile, nil
 }

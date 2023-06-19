@@ -65,7 +65,7 @@ func (adp *FacebookAdapter) getProfile(ctx *gin.Context) (*Profile, error) {
 	Profile := Profile{}
 
 	if fProfile["id"] != nil {
-		Profile.Fbid = fProfile["id"].(string)
+		Profile.ID = fProfile["id"].(string)
 	}
 
 	if fProfile["name"] != nil {
