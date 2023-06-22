@@ -27,7 +27,6 @@ func VerifyAccessToken(ctx *gin.Context) {
 	}
 
 	// Setup and check given token
-
 	tokenMaker, err := tokens.NewJWTMaker(config.Data.TokenSymmetricKey)
 	if err != nil {
 		fmt.Errorf("cannot create token maker: %w", err)

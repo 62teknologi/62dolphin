@@ -66,7 +66,7 @@ func CreateUser(ctx *gin.Context) {
 	input := utils.ParseForm(ctx)
 
 	if validation, err := utils.Validate(input, transformer); err {
-		ctx.JSON(http.StatusOK, utils.ResponseData("error", "validation", validation.Errors))
+		ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", "validation", validation.Errors))
 		return
 	}
 
@@ -144,7 +144,7 @@ func VerifyUser(ctx *gin.Context) {
 	input := utils.ParseForm(ctx)
 
 	if validation, err := utils.Validate(input, transformer); err {
-		ctx.JSON(http.StatusOK, utils.ResponseData("error", "validation", validation.Errors))
+		ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", "validation", validation.Errors))
 		return
 	}
 
@@ -185,7 +185,7 @@ func UpdateUser(ctx *gin.Context) {
 	input := utils.ParseForm(ctx)
 
 	if validation, err := utils.Validate(input, transformer); err {
-		ctx.JSON(http.StatusOK, utils.ResponseData("error", "validation", validation.Errors))
+		ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", "validation", validation.Errors))
 		return
 	}
 

@@ -47,10 +47,14 @@ func main() {
 		apiV1.GET("/auth/:adapter/callback", controllers.Callback)
 		apiV1.POST("/auth/:adapter/callback", controllers.Callback)
 
+		apiV1.POST("/otps/create", controllers.CreateOTP)
+		
 		apiV1.POST("/tokens/create", controllers.CreateAccessToken)
 		apiV1.POST("/tokens/verify", controllers.VerifyAccessToken)
 		apiV1.POST("/tokens/refresh", controllers.RenewAccessToken)
 
+		apiV1.POST("/passwords/create", controllers.CreateHashPassword)
+		apiV1.POST("/passwords/check", controllers.CheckPassword)
 		apiV1.POST("/passwords/forgot", controllers.ForgotPassword)
 		apiV1.PATCH("/passwords/reset/:token", controllers.ResetPassword)
 
