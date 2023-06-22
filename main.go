@@ -48,7 +48,7 @@ func main() {
 		apiV1.POST("/auth/:adapter/callback", controllers.Callback)
 
 		apiV1.POST("/otps/create", controllers.CreateOTP)
-		
+
 		apiV1.POST("/tokens/create", controllers.CreateAccessToken)
 		apiV1.POST("/tokens/verify", controllers.VerifyAccessToken)
 		apiV1.POST("/tokens/refresh", controllers.RenewAccessToken)
@@ -66,7 +66,8 @@ func main() {
 
 	authorizedV1 := r.Group("/api/v1").Use(middlewares.AuthMiddleware(tokenMaker))
 	{
-		authorizedV1.POST("/tokens/block-token", controllers.BlockRefreshToken)
+		authorizedV1.POST("/tokens/block", controllers.BlockRefreshToken)
+		authorizedV1.POST("/tokens/block-all", controllers.BlockAllRefreshToken)
 		authorizedV1.PUT("/users/:id", controllers.UpdateUser)
 		authorizedV1.DELETE("/users/:id", controllers.DeleteUser)
 	}

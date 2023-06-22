@@ -222,20 +222,12 @@ func BlockRefreshToken(ctx *gin.Context) {
 }
 
 func BlockAllRefreshToken(ctx *gin.Context) {
-	// Setup request body
-	var req accessTokenRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", err.Error(), nil))
-		return
-	}
-
 	// Get token auth payload
 	authorizationPayload, _ := ctx.Get("authorization_payload")
 
 	// Update blocked token on db
 	tokenQuery := utils.DB.Table("tokens").
 		Where("user_id", authorizationPayload.(*tokens.Payload).UserId).
-		Where("refresh_token = ?", req.RefreshToken).
 		Update("is_blocked", true)
 
 	// Handle query error
