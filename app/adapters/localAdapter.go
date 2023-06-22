@@ -41,6 +41,9 @@ func (adp *LocalAdapter) Callback(ctx *gin.Context) error {
 	transformer, err := utils.JsonFileParser(config.Data.SettingPath + "/transformers/request/auth/login.json")
 	input := utils.ParseForm(ctx)
 
+	authField := transformer["auth_field"]
+	delete(transformer, "auth_field")
+
 	if validation, err := utils.Validate(input, transformer); err {
 		utils.LogJson(validation.Errors)
 		return errors.New("validation error")
@@ -57,6 +60,7 @@ func (adp *LocalAdapter) Callback(ctx *gin.Context) error {
 
 	ctx.Set("transformer", transformer)
 	ctx.Set("input", input)
+	ctx.Set("auth_field", authField)
 
 	user, err := adp.getProfile(ctx)
 
@@ -127,13 +131,14 @@ func (adp *LocalAdapter) Callback(ctx *gin.Context) error {
 func (adp *LocalAdapter) getProfile(ctx *gin.Context) (map[string]any, error) {
 	transformer := ctx.MustGet("transformer").(map[string]any)
 	input := ctx.MustGet("input").(map[string]any)
+	authField := ctx.MustGet("auth_field").(string)
 
-	utils.DB.Table("users").Where(utils.DB.Where("email = ?", transformer["email"])).Take(&transformer)
+	utils.DB.Table("users").Where(utils.DB.Where(fmt.Sprintf("%s = ?", authField), transformer[authField])).Take(&transformer)
 
 	if transformer["id"] == nil {
-		return transformer, errors.New("Invalid Email")
+		return transformer, fmt.Errorf("invalid %s or password", authField)
 	} else if err := util.CheckPassword(input["password"].(string), transformer["password"].(string)); err != nil {
-		return transformer, err
+		return transformer, fmt.Errorf("invalid %s or password", authField)
 	}
 
 	return transformer, nil

@@ -17,6 +17,8 @@ type Config struct {
 	HTTPServerAddress string `mapstructure:"HTTP_SERVER_ADDRESS"`
 	ApiKey            string `mapstructure:"API_KEY"`
 
+	MonolithUrl string `mapstructure:"MONOLITH_URL"`
+
 	TokenSymmetricKey    string        `mapstructure:"TOKEN_SYMMETRIC_KEY"`
 	AccessTokenDuration  time.Duration `mapstructure:"ACCESS_TOKEN_DURATION"`
 	RefreshTokenDuration time.Duration `mapstructure:"REFRESH_TOKEN_DURATION"`
@@ -48,7 +50,7 @@ var Data Config
 // LoadConfig reads configuration from file or environment variables.
 func LoadConfig(path string, data *Config) (config Config, err error) {
 	viper.AddConfigPath(path)
-	viper.SetConfigName("app")
+	viper.SetConfigName(".env")
 	viper.SetConfigType("env")
 
 	viper.SetDefault("ENVIRONMENT", "development")

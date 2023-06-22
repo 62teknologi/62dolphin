@@ -2,13 +2,12 @@ package controllers
 
 import (
 	"fmt"
+	dutils "github.com/62teknologi/62dolphin/app/utils"
 	"net/http"
 	"time"
 
 	"github.com/62teknologi/62dolphin/62golib/utils"
 	"github.com/62teknologi/62dolphin/app/config"
-	dutils "github.com/62teknologi/62dolphin/app/utils"
-
 	"github.com/dbssensei/ordentmarketplace/util"
 
 	"github.com/gin-gonic/gin"
@@ -62,17 +61,12 @@ func FindUsers(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, utils.ResponseDataPaginate("success", "find users success", customResponses, pagination, filter, search, summary))
 }
 
-type otpVerificationParams struct {
-	OtpReceiver string
-	OtpCode     string
-}
-
 func CreateUser(ctx *gin.Context) {
 	transformer, _ := utils.JsonFileParser(config.Data.SettingPath + "/transformers/request/users/create.json")
 	input := utils.ParseForm(ctx)
 
 	if validation, err := utils.Validate(input, transformer); err {
-		ctx.JSON(http.StatusOK, utils.ResponseData("failed", "validation", validation.Errors))
+		ctx.JSON(http.StatusOK, utils.ResponseData("error", "validation", validation.Errors))
 		return
 	}
 
@@ -90,24 +84,32 @@ func CreateUser(ctx *gin.Context) {
 	// Set default fields
 	transformer["password"] = hashedPassword
 
-	if input["otp"] == true && transformer["is_active"] == "" {
-		transformer["is_active"] = false
-	}
+	// Setup otp fields
+	otpMethod := transformer["otp_method"]
+	otpReceiver := transformer["otp_receiver"]
+	statusField := transformer["status_field"]
 
-	// Create and handle query error
-	if err := utils.DB.Table("users").Create(&transformer).Error; err != nil {
-		ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", err.Error(), nil))
-		return
+	delete(transformer, "otp_method")
+	delete(transformer, "otp_receiver")
+	delete(transformer, "status_field")
+
+	if statusField != nil {
+		transformer[statusField.(string)] = true
 	}
 
 	// Generate and create OTP if otp option is active
-	if input["otp"] == true {
+	if otpMethod != nil &&
+		otpReceiver != nil &&
+		statusField != nil {
+
+		transformer[statusField.(string)] = false
+
 		otpCode, _ := dutils.GenerateOTP(8)
 
 		otpParams := map[string]any{
-			"type":       input["otp_method"],
+			"type":       otpMethod,
 			"code":       otpCode,
-			"receiver":   input["otp_receiver"],
+			"receiver":   otpReceiver,
 			"expires_at": time.Now().Local().Add(time.Minute * 30),
 			"created_at": time.Now(),
 			"updated_at": time.Now(),
@@ -120,18 +122,17 @@ func CreateUser(ctx *gin.Context) {
 			return
 		}
 
-		// Setup email sender
-		receiverList := []dutils.EmailReceiver{
-			{
-				Name:    "Dimas",
-				Address: transformer["email"].(string),
-			},
+	}
+
+	// Create and handle query error
+	if err := utils.DB.Table("users").Create(&transformer).Error; err != nil {
+		if duplicateError := utils.DuplicateError(err); duplicateError != nil {
+			ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", duplicateError.Error(), nil))
+			return
 		}
 
-		// Send email verification
-		go func() {
-			dutils.EmailSender("verify_user.html", otpVerificationParams{OtpReceiver: input["otp_receiver"].(string), OtpCode: otpCode}, receiverList)
-		}()
+		ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", err.Error(), nil))
+		return
 	}
 
 	ctx.JSON(http.StatusOK, utils.ResponseData("success", "create user success", transformer))
@@ -143,7 +144,7 @@ func VerifyUser(ctx *gin.Context) {
 	input := utils.ParseForm(ctx)
 
 	if validation, err := utils.Validate(input, transformer); err {
-		ctx.JSON(http.StatusOK, utils.ResponseData("failed", "validation", validation.Errors))
+		ctx.JSON(http.StatusOK, utils.ResponseData("error", "validation", validation.Errors))
 		return
 	}
 
@@ -184,7 +185,7 @@ func UpdateUser(ctx *gin.Context) {
 	input := utils.ParseForm(ctx)
 
 	if validation, err := utils.Validate(input, transformer); err {
-		ctx.JSON(http.StatusOK, utils.ResponseData("failed", "validation", validation.Errors))
+		ctx.JSON(http.StatusOK, utils.ResponseData("error", "validation", validation.Errors))
 		return
 	}
 

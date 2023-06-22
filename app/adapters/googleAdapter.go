@@ -2,6 +2,7 @@ package adapters
 
 import (
 	"fmt"
+	"github.com/goccy/go-json"
 	"net/http"
 
 	"github.com/62teknologi/62dolphin/62golib/utils"
@@ -41,9 +42,18 @@ func (adp *GoogleAdapter) GenerateLoginURL() string {
 
 func (adp *GoogleAdapter) Callback(ctx *gin.Context) error {
 	profile, err := adp.getProfile(ctx)
-	utils.LogJson(profile)
+	if err != nil {
+		return fmt.Errorf("error while get profile")
+	}
 
-	return err
+	profileJson, _ := json.Marshal(profile)
+	encodedProfile := utils.Encode(string(profileJson))
+	redirectUrl := fmt.Sprintf("%s/auth/google/callback?token=%v", config.Data.MonolithUrl+"/api/v1", encodedProfile)
+
+	ctx.Header("Authorization", "Basic "+utils.Encode(config.Data.ApiKey))
+	ctx.Redirect(http.StatusTemporaryRedirect, redirectUrl)
+
+	return nil
 }
 
 func (adp *GoogleAdapter) getProfile(ctx *gin.Context) (*Profile, error) {
@@ -73,7 +83,7 @@ func (adp *GoogleAdapter) getProfile(ctx *gin.Context) (*Profile, error) {
 	Profile := Profile{}
 
 	if gProfile.Names != nil {
-		Profile.Gid = gProfile.Names[0].Metadata.Source.Id
+		Profile.ID = gProfile.Names[0].Metadata.Source.Id
 		Profile.Name = gProfile.Names[0].DisplayName
 	}
 

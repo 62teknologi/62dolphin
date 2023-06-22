@@ -1,6 +1,8 @@
 {
+    "otp_method":"",
+    "otp_receiver":"",
+    "status_field": "",
+    "name": "",
     "email": "email|required",
-    "password": "required",
-    "username": "",
-    "active": ""
+    "password": "required"
 }

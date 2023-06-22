@@ -1,4 +1,5 @@
 {
+  "auth_field": "email",
   "email": "required|email",
   "password": "required",
   "platform_id": 0

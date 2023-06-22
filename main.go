@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-
 	"github.com/62teknologi/62dolphin/62golib/utils"
 	"github.com/62teknologi/62dolphin/app/config"
 	"github.com/62teknologi/62dolphin/app/http/controllers"
@@ -40,7 +39,7 @@ func main() {
 	//todo use middleware db selector
 	apiV1 := r.Group("/api/v1").Use(middlewares.DbSelectorMiddleware())
 	{
-		//apiV1.POST("/auth/sign-in", controllers.SignIn)
+		apiV1.POST("/auth/sign-in", controllers.Callback)
 		apiV1.POST("/auth/sign-up", controllers.CreateUser)
 
 		// adapter : local, facebook, microsoft, google

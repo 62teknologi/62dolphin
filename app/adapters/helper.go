@@ -1,10 +1,11 @@
 package adapters
 
 import (
+	"fmt"
 	"github.com/62teknologi/62dolphin/app/interfaces"
 )
 
-func GetAdapter(name string) interfaces.AuthInterface {
+func GetAdapter(name string) (interfaces.AuthInterface, error) {
 	var adapter interfaces.AuthInterface
 
 	switch name {
@@ -16,14 +17,15 @@ func GetAdapter(name string) interfaces.AuthInterface {
 		adapter = &MicrosoftAdapter{}
 	case "local":
 		adapter = &LocalAdapter{}
+	default:
+		return nil, fmt.Errorf("adapter %s not found", name)
 	}
 
-	return adapter
+	return adapter, nil
 }
 
 type Profile struct {
-	Gid       string `json:"google_id"`
-	Fbid      string `json:"facebook_id"`
+	ID        string `json:"id"`
 	Name      string `json:"name"`
 	Email     string `json:"email"`
 	Phone     string `json:"phone"`

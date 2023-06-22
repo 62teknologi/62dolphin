@@ -35,9 +35,18 @@ func (adp *FacebookAdapter) GenerateLoginURL() string {
 
 func (adp *FacebookAdapter) Callback(ctx *gin.Context) error {
 	profile, err := adp.getProfile(ctx)
-	utils.LogJson(profile)
+	if err != nil {
+		return fmt.Errorf("error while get profile")
+	}
 
-	return err
+	profileJson, _ := json.Marshal(profile)
+	encodedProfile := utils.Encode(string(profileJson))
+	redirectUrl := fmt.Sprintf("%s/auth/facebook/callback?token=%v", config.Data.MonolithUrl+"/api/v1", encodedProfile)
+
+	ctx.Header("Authorization", "Basic "+utils.Encode(config.Data.ApiKey))
+	ctx.Redirect(http.StatusTemporaryRedirect, redirectUrl)
+
+	return nil
 }
 
 func (adp *FacebookAdapter) getProfile(ctx *gin.Context) (*Profile, error) {
@@ -65,7 +74,7 @@ func (adp *FacebookAdapter) getProfile(ctx *gin.Context) (*Profile, error) {
 	Profile := Profile{}
 
 	if fProfile["id"] != nil {
-		Profile.Fbid = fProfile["id"].(string)
+		Profile.ID = fProfile["id"].(string)
 	}
 
 	if fProfile["name"] != nil {
