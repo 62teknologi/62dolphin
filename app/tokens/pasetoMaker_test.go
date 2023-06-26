@@ -1,18 +1,18 @@
 package tokens
 
 import (
+	"github.com/62teknologi/62dolphin/app/utils"
 	"testing"
 	"time"
 
-	"github.com/dbssensei/ordentmarketplace/util"
 	"github.com/stretchr/testify/require"
 )
 
 func TestPasetoMaker(t *testing.T) {
-	maker, err := NewPasetoMaker(util.RandomString(32))
+	maker, err := NewPasetoMaker(utils.RandomString(32))
 	require.NoError(t, err)
 
-	userId := int32(util.RandomInt(0, 10))
+	userId := int32(utils.RandomInt(0, 10))
 	duration := time.Minute
 
 	issuedAt := time.Now()
@@ -34,10 +34,10 @@ func TestPasetoMaker(t *testing.T) {
 }
 
 func TestExpiredPasetoToken(t *testing.T) {
-	maker, err := NewPasetoMaker(util.RandomString(32))
+	maker, err := NewPasetoMaker(utils.RandomString(32))
 	require.NoError(t, err)
 
-	token, payload, err := maker.CreateToken(int32(util.RandomInt(0, 10)), -time.Minute)
+	token, payload, err := maker.CreateToken(int32(utils.RandomInt(0, 10)), -time.Minute)
 	require.NoError(t, err)
 	require.NotEmpty(t, token)
 	require.NotEmpty(t, payload)

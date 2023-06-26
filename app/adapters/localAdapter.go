@@ -11,7 +11,7 @@ import (
 	"github.com/62teknologi/62dolphin/app/config"
 	"github.com/62teknologi/62dolphin/app/interfaces"
 	"github.com/62teknologi/62dolphin/app/tokens"
-	"github.com/dbssensei/ordentmarketplace/util"
+	dutils "github.com/62teknologi/62dolphin/app/utils"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/facebook"
@@ -137,7 +137,7 @@ func (adp *LocalAdapter) getProfile(ctx *gin.Context) (map[string]any, error) {
 
 	if transformer["id"] == nil {
 		return transformer, fmt.Errorf("invalid %s or password", authField)
-	} else if err := util.CheckPassword(input["password"].(string), transformer["password"].(string)); err != nil {
+	} else if err := dutils.CheckPassword(input["password"].(string), transformer["password"].(string)); err != nil {
 		return transformer, fmt.Errorf("invalid %s or password", authField)
 	}
 

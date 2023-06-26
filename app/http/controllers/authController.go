@@ -11,7 +11,6 @@ import (
 	"github.com/62teknologi/62dolphin/app/adapters"
 	"github.com/62teknologi/62dolphin/app/config"
 
-	"github.com/dbssensei/ordentmarketplace/util"
 	"github.com/gin-gonic/gin"
 )
 
@@ -122,7 +121,7 @@ func ResetPassword(ctx *gin.Context) {
 	}
 
 	// Hashing Password
-	hashedPassword, err := util.HashPassword(req.Password)
+	hashedPassword, err := dutils.HashPassword(req.Password)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", fmt.Sprintf("%v", err.Error()), nil))
 		return

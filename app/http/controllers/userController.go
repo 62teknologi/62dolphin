@@ -8,8 +8,6 @@ import (
 
 	"github.com/62teknologi/62dolphin/62golib/utils"
 	"github.com/62teknologi/62dolphin/app/config"
-	"github.com/dbssensei/ordentmarketplace/util"
-
 	"github.com/gin-gonic/gin"
 )
 
@@ -74,7 +72,7 @@ func CreateUser(ctx *gin.Context) {
 	utils.MapNullValuesRemover(transformer)
 
 	// Hashing Password
-	hashedPassword, err := util.HashPassword(transformer["password"].(string))
+	hashedPassword, err := dutils.HashPassword(transformer["password"].(string))
 
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", fmt.Sprintf("%v", err.Error()), nil))
@@ -194,7 +192,7 @@ func UpdateUser(ctx *gin.Context) {
 
 	// Hashing Password (if exist)
 	if input["password"] != nil {
-		hashedPassword, err := util.HashPassword(input["password"].(string))
+		hashedPassword, err := dutils.HashPassword(input["password"].(string))
 
 		if err != nil {
 			ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", fmt.Sprintf("%v", err.Error()), nil))

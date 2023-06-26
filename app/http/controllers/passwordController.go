@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"github.com/62teknologi/62dolphin/62golib/utils"
-	"github.com/dbssensei/ordentmarketplace/util"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )
@@ -19,7 +18,7 @@ func CreateHashPassword(ctx *gin.Context) { // Setup request body
 	}
 
 	// Hashing Password
-	hashedPassword, err := util.HashPassword(req.Password)
+	hashedPassword, err := dutils.HashPassword(req.Password)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", "error while hashing password", nil))
 		return
@@ -43,7 +42,7 @@ func CheckPassword(ctx *gin.Context) { // Setup request body
 	}
 
 	// Hashing Password
-	err := util.CheckPassword(req.Password, req.HashedPassword)
+	err := dutils.CheckPassword(req.Password, req.HashedPassword)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", "password does not match", nil))
 		return
