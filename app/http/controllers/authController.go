@@ -93,6 +93,11 @@ func ResetPassword(ctx *gin.Context) {
 		return
 	}
 
+	if req.Password != req.ConfirmPassword {
+		ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", "new password is not the same as confirm password", nil))
+		return
+	}
+
 	// decodePasswordToken should return <otp type>#<otp code>#<otp content>
 	decodePasswordToken, err := utils.Decode(ctx.Param("token"))
 	if err != nil {
@@ -101,22 +106,10 @@ func ResetPassword(ctx *gin.Context) {
 	}
 	splitToken := strings.Split(decodePasswordToken, "#")
 
-	// Check if user exist in db
 	var otp map[string]any
-	utils.DB.Table("otps").Where("type = ?", splitToken[0]).Where("code = ?", splitToken[1]).Where("receiver = ?", splitToken[2]).Take(&otp)
-
-	if otp["id"] == nil {
-		ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", "invalid otp", nil))
-		return
-	}
-
-	if otp["expires_at"].(time.Time).Unix() < time.Now().Unix() {
-		ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", "otp expired", nil))
-		return
-	}
-
-	if req.Password != req.ConfirmPassword {
-		ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", "new password is not the same as confirm password", nil))
+	err = dutils.VerifyOTP(otp, splitToken[0], splitToken[2], splitToken[1])
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", err.Error(), nil))
 		return
 	}
 

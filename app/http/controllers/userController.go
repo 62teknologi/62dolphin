@@ -149,15 +149,14 @@ func VerifyUser(ctx *gin.Context) {
 	utils.MapValuesShifter(transformer, input)
 	utils.MapNullValuesRemover(transformer)
 
-	// Check if user exist in db
-	var otp map[string]any
-	utils.DB.Table("otps").Where("type = ?", transformer["method"]).Where("receiver = ?", transformer["receiver"]).Where("code = ?", transformer["code"]).Take(&otp)
+	otpMethod := transformer["method"].(string)
+	otpReceiver := transformer["receiver"].(string)
+	otpCode := transformer["code"].(string)
 
-	if otp["id"] == nil {
-		ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", "invalid otp", nil))
-		return
-	} else if otp["expires_at"].(time.Time).Unix() < time.Now().Unix() {
-		ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", "otp expired", nil))
+	var otp map[string]any
+	err := dutils.VerifyOTP(otp, otpMethod, otpReceiver, otpCode)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", err.Error(), nil))
 		return
 	}
 
@@ -166,9 +165,13 @@ func VerifyUser(ctx *gin.Context) {
 	}
 
 	user := map[string]any{}
-	utils.DB.Table("users").Where(fmt.Sprintf("%v = ?", transformer["method"]), transformer["receiver"]).Take(&user)
-	err := utils.DB.Table("users").Where(fmt.Sprintf("%v = ?", transformer["method"]), transformer["receiver"]).Updates(&params).Error
+	err = utils.DB.Table("users").Where(fmt.Sprintf("%v = ?", otpMethod), otpReceiver).Take(&user).Error
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", err.Error(), nil))
+		return
+	}
 
+	err = utils.DB.Table("users").Where(fmt.Sprintf("%v = ?", otpMethod), otpReceiver).Updates(&params).Error
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", err.Error(), nil))
 		return
