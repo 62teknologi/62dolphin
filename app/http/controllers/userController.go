@@ -18,7 +18,7 @@ func FindUser(ctx *gin.Context) {
 	transformer, _ := utils.JsonFileParser(config.Data.SettingPath + "/transformers/response/users/find.json")
 	query := utils.DB.Table("users")
 
-	utils.SetBelongsTo(query, transformer, &columns)
+	utils.SetBelongsTo(query, transformer, &columns, ctx)
 	delete(transformer, "filterable")
 
 	if err := query.Select(columns).Order(order).Where("users."+"id = ?", ctx.Param("id")).Take(&value).Error; err != nil {
@@ -41,7 +41,7 @@ func FindUsers(ctx *gin.Context) {
 	search := utils.SetGlobalSearch(query, transformer, ctx)
 
 	utils.SetOrderByQuery(query, ctx)
-	utils.SetBelongsTo(query, transformer, &columns)
+	utils.SetBelongsTo(query, transformer, &columns, ctx)
 
 	delete(transformer, "filterable")
 	delete(transformer, "searchable")
