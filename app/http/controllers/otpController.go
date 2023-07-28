@@ -9,9 +9,10 @@ import (
 )
 
 type createOTPRequest struct {
-	Method    string `json:"method" binding:"required"`
-	Receiver  string `json:"receiver" binding:"required"`
-	OTPLength int    `json:"otp_length" binding:"required"`
+	Method            string `json:"method" binding:"required"`
+	Receiver          string `json:"receiver" binding:"required"`
+	OTPLength         int    `json:"otp_length" binding:"required"`
+	OTPExpiredMinutes int    `json:"otp_expired_minutes"`
 }
 
 func CreateOTP(ctx *gin.Context) { // Setup request body
@@ -21,13 +22,18 @@ func CreateOTP(ctx *gin.Context) { // Setup request body
 		return
 	}
 
+	var otpExpiredMinutes int
+	if req.OTPExpiredMinutes == 0 {
+		otpExpiredMinutes = 30
+	}
+
 	otpCode, _ := dutils.GenerateOTP(req.OTPLength)
 
 	otpParams := map[string]any{
 		"type":       req.Method,
 		"code":       otpCode,
 		"receiver":   req.Receiver,
-		"expires_at": time.Now().Local().Add(time.Minute * 30),
+		"expires_at": time.Now().Local().Add(time.Minute * time.Duration(otpExpiredMinutes)),
 		"created_at": time.Now(),
 		"updated_at": time.Now()}
 
