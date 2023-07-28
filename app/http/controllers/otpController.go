@@ -25,6 +25,8 @@ func CreateOTP(ctx *gin.Context) { // Setup request body
 	var otpExpiredMinutes int
 	if req.OTPExpiredMinutes == 0 {
 		otpExpiredMinutes = 30
+	} else {
+		otpExpiredMinutes = req.OTPExpiredMinutes
 	}
 
 	otpCode, _ := dutils.GenerateOTP(req.OTPLength)
@@ -37,11 +39,22 @@ func CreateOTP(ctx *gin.Context) { // Setup request body
 		"created_at": time.Now(),
 		"updated_at": time.Now()}
 
-	createOtp := utils.DB.Table("otps").Create(otpParams)
+	var existingOtp map[string]any
+	utils.DB.Table("otps").Where("receiver = ?", otpParams["receiver"]).Take(&existingOtp)
 
-	if createOtp.Error != nil {
-		ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", createOtp.Error.Error(), nil))
-		return
+	if existingOtp["id"] != nil {
+		updatedOtp := utils.DB.Table("otps").Where("receiver = ?", otpParams["receiver"]).Updates(otpParams)
+		if updatedOtp.Error != nil {
+			ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", updatedOtp.Error.Error(), nil))
+			return
+		}
+	} else {
+		createdOtp := utils.DB.Table("otps").Create(otpParams)
+		if createdOtp.Error != nil {
+			ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", createdOtp.Error.Error(), nil))
+			return
+		}
+
 	}
 
 	ctx.JSON(http.StatusOK, utils.ResponseData("success", "success create otp", map[string]any{
