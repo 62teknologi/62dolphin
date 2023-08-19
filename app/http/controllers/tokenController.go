@@ -153,7 +153,7 @@ func RenewAccessToken(ctx *gin.Context) {
 		return
 	}
 
-	if token["is_blocked"] == true {
+	if utils.ConvertToInt(token["is_blocked"]) == 1 {
 		ctx.JSON(http.StatusUnauthorized, utils.ResponseData("error", "token has been blocked", nil))
 		return
 	}
