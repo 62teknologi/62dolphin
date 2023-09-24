@@ -3,8 +3,10 @@ package adapters
 import (
 	"errors"
 	"fmt"
+	"gorm.io/gorm"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/62teknologi/62dolphin/62golib/utils"
@@ -133,7 +135,22 @@ func (adp *LocalAdapter) getProfile(ctx *gin.Context) (map[string]any, error) {
 	input := ctx.MustGet("input").(map[string]any)
 	authField := ctx.MustGet("auth_field").(string)
 
-	utils.DB.Table("users").Where(utils.DB.Where(fmt.Sprintf("%s = ?", authField), transformer[authField])).Take(&transformer)
+	if strings.Contains(authField, "|") {
+		substrings := strings.Split(authField, "|")
+		var query *gorm.DB
+		for i, substring := range substrings {
+			if i == 0 {
+				query = utils.DB.Table("users").Where(utils.DB.Where(fmt.Sprintf("%s = ?", substring), transformer[substring]))
+				continue
+			}
+
+			query = query.Or(utils.DB.Where(fmt.Sprintf("%s = ?", substring), transformer[substring])).Take(&transformer)
+		}
+
+		query.Take(&transformer)
+	} else {
+		utils.DB.Table("users").Where(utils.DB.Where(fmt.Sprintf("%s = ?", authField), transformer[authField])).Take(&transformer)
+	}
 
 	if transformer["id"] == nil {
 		return transformer, fmt.Errorf("invalid %s or password", authField)

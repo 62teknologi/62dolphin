@@ -1,6 +1,7 @@
 {
-  "auth_field": "email",
+  "auth_field": "email|username",
   "email": "required|email",
+  "username": "",
   "password": "required",
   "platform_id": 0
 }

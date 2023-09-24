@@ -4,5 +4,6 @@
     "status_field": "",
     "name": "",
     "email": "email|required",
+    "username": "",
     "password": "required"
 }
