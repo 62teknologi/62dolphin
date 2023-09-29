@@ -3,7 +3,10 @@ package adapters
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/62teknologi/62dolphin/app/tokens"
 	"net/http"
+	"strconv"
+	"time"
 
 	"github.com/62teknologi/62dolphin/62golib/utils"
 	"github.com/62teknologi/62dolphin/app/config"
@@ -39,9 +42,18 @@ func (adp *FacebookAdapter) Callback(ctx *gin.Context) error {
 		return fmt.Errorf("error while get profile")
 	}
 
+	token, err := adp.generateToken(ctx, profile.Email)
+	if err != nil {
+		return fmt.Errorf("error while get profile")
+	}
+
 	profileJson, _ := json.Marshal(profile)
 	encodedProfile := utils.Encode(string(profileJson))
-	redirectUrl := fmt.Sprintf("%s/auth/facebook/callback?token=%v", config.Data.MonolithUrl+"/api/v1", encodedProfile)
+
+	tokenJson, _ := json.Marshal(token)
+	encodeToken := utils.Encode(string(tokenJson))
+
+	redirectUrl := fmt.Sprintf("%s/auth/facebook/callback?token=%v&auth-token=%v", config.Data.MonolithUrl+"/api/v1", encodedProfile, encodeToken)
 
 	ctx.Header("Authorization", "Basic "+utils.Encode(config.Data.ApiKey))
 	ctx.Redirect(http.StatusTemporaryRedirect, redirectUrl)
@@ -106,4 +118,56 @@ func (adp *FacebookAdapter) getProfile(ctx *gin.Context) (*Profile, error) {
 	}
 
 	return &Profile, nil
+}
+
+func (adp *FacebookAdapter) generateToken(ctx *gin.Context, email string) (map[string]any, error) {
+	tokenMaker, err := tokens.NewJWTMaker(config.Data.TokenSymmetricKey)
+
+	var user map[string]any
+	utils.DB.Table("users").Where("email = ?", email).Take(&user)
+
+	uId, _ := strconv.ParseInt(fmt.Sprintf("%v", user["id"]), 10, 32)
+
+	accessToken, accessPayload, err := tokenMaker.CreateToken(
+		int32(uId),
+		config.Data.AccessTokenDuration,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	refreshToken, refreshPayload, err := tokenMaker.CreateToken(
+		int32(uId),
+		config.Data.RefreshTokenDuration,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	// Store sessions data to DB
+	params := map[string]any{
+		"id":            refreshPayload.Id,
+		"user_id":       int32(uId),
+		"refresh_token": refreshToken,
+		"platform_id":   1,
+		"is_blocked":    false,
+		"expires_at":    refreshPayload.ExpiredAt,
+		"created_at":    time.Now(),
+		"updated_at":    time.Now(),
+	}
+
+	if err := utils.DB.Table("tokens").Create(&params).Error; err != nil {
+		ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", fmt.Sprintf("%v", err.Error()), nil))
+	}
+
+	return map[string]any{
+		"session_id":               params["id"],
+		"access_token":             accessToken,
+		"access_token_expires_at":  accessPayload.ExpiredAt,
+		"refresh_token":            refreshToken,
+		"refresh_token_expires_at": refreshPayload.ExpiredAt,
+		"platform_id":              params["platform_id"],
+	}, nil
 }
