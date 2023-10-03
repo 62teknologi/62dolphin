@@ -58,6 +58,7 @@ func Verify(ctx *gin.Context) {
 				"email":             token["email"],
 				adapterName + "_id": token["user_id"],
 				"password":          "$2a$10$P9wjSPl0lcrJzSQucqi8OOdrjNVj.jgAFn7vYf6gcpoXwfRgXVHRG",
+				"created_at":        time.Now(),
 			}).Error; err != nil {
 				if duplicateError := utils.DuplicateError(err); duplicateError != nil {
 					updatedOtp := utils.DB.Table("users").
