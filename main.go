@@ -46,6 +46,7 @@ func main() {
 		apiV1.GET("/auth/:adapter", controllers.Login)
 		apiV1.GET("/auth/:adapter/callback", controllers.Callback)
 		apiV1.POST("/auth/:adapter/callback", controllers.Callback)
+		apiV1.POST("/auth/:adapter/verify", controllers.Verify)
 
 		apiV1.POST("/otps/create", controllers.CreateOTP)
 

@@ -40,6 +40,62 @@ func Callback(ctx *gin.Context) {
 	adapter.Callback(ctx)
 }
 
+func Verify(ctx *gin.Context) {
+	adapterName := ctx.Param("adapter")
+
+	adapter, err := adapters.GetAdapter(adapterName)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, utils.ResponseData("success", err.Error(), nil))
+	}
+
+	adapter = adapter.Init()
+
+	token, err := adapter.Verify(ctx)
+	if err != nil {
+		if err.Error() == "user not found" {
+			//
+			if err := utils.DB.Table("users").Create(&map[string]any{
+				"email":             token["email"],
+				adapterName + "_id": token["user_id"],
+				"password":          "$2a$10$P9wjSPl0lcrJzSQucqi8OOdrjNVj.jgAFn7vYf6gcpoXwfRgXVHRG",
+			}).Error; err != nil {
+				if duplicateError := utils.DuplicateError(err); duplicateError != nil {
+					updatedOtp := utils.DB.Table("users").
+						Where("email = ?", token["email"]).Updates(map[string]any{
+						adapterName + "_id": token["user_id"],
+					})
+					if updatedOtp.Error != nil {
+						if duplicateError := utils.DuplicateError(updatedOtp.Error); duplicateError != nil {
+							ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", "user id "+token["user_id"].(string)+" already linked to another account", nil))
+							return
+						}
+						ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", updatedOtp.Error.Error(), nil))
+						return
+					}
+
+					ctx.JSON(http.StatusOK, utils.ResponseData("success", fmt.Sprintf("success linking %s account", adapterName), nil))
+					return
+				}
+
+				ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", err.Error(), nil))
+				return
+			}
+
+			var user map[string]any
+			utils.DB.Table("users").Where(adapterName+"_id = ?", token["user_id"]).Take(&user)
+			token["id"] = user["id"]
+
+			ctx.JSON(http.StatusOK, utils.ResponseData("success", fmt.Sprintf("success create and linking %s account", adapterName), token))
+			return
+		}
+
+		ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", err.Error(), nil))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, utils.ResponseData("success", "success verify user", token))
+}
+
 func ForgotPassword(ctx *gin.Context) {
 	// Parse and cleaning input
 	input, err := utils.JsonFileParser(config.Data.SettingPath + "/transformers/request/auth/forgot_password.json")

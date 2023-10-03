@@ -36,6 +36,30 @@ func (adp *FacebookAdapter) GenerateLoginURL() string {
 	return adp.config.AuthCodeURL("")
 }
 
+func (adp *FacebookAdapter) Verify(ctx *gin.Context) (map[string]any, error) {
+	var req interfaces.OAuthData
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		return nil, err
+	}
+
+	var user map[string]any
+	utils.DB.Table("users").Where("email = ?", req.Email).Where("facebook_id = ?", req.UserId).Take(&user)
+
+	if user["id"] == nil {
+		return map[string]any{
+			"email":   req.Email,
+			"user_id": req.UserId,
+		}, fmt.Errorf("user not found")
+	}
+
+	token, err := adp.generateToken(ctx, req.Email)
+	if err != nil {
+		return nil, err
+	}
+
+	return token, nil
+}
+
 func (adp *FacebookAdapter) Callback(ctx *gin.Context) error {
 	profile, err := adp.getProfile(ctx)
 	if err != nil {
@@ -44,7 +68,7 @@ func (adp *FacebookAdapter) Callback(ctx *gin.Context) error {
 
 	token, err := adp.generateToken(ctx, profile.Email)
 	if err != nil {
-		return fmt.Errorf("error while get profile")
+		return err
 	}
 
 	profileJson, _ := json.Marshal(profile)

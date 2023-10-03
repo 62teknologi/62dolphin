@@ -39,6 +39,10 @@ func (adp *LocalAdapter) GenerateLoginURL() string {
 	return "/api/v1/auth/local/callback"
 }
 
+func (adp *LocalAdapter) Verify(ctx *gin.Context) (map[string]any, error) {
+	return map[string]any{"status": "success"}, nil
+}
+
 func (adp *LocalAdapter) Callback(ctx *gin.Context) error {
 	transformer, err := utils.JsonFileParser(config.Data.SettingPath + "/transformers/request/auth/login.json")
 	input := utils.ParseForm(ctx)
