@@ -27,23 +27,18 @@ func (adp *AppleAdapter) GenerateLoginURL() string {
 	return adp.config.AuthCodeURL("")
 }
 
-func (adp *AppleAdapter) Verify(ctx *gin.Context) (map[string]any, error) {
-	var req interfaces.OAuthData
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		return nil, err
-	}
-
+func (adp *AppleAdapter) Verify(ctx *gin.Context, email, userId string) (map[string]any, error) {
 	var user map[string]any
-	utils.DB.Table("users").Where("email = ?", req.Email).Where("apple_id = ?", req.UserId).Take(&user)
+	utils.DB.Table("users").Where("email = ?", email).Where("apple_id = ?", userId).Take(&user)
 
 	if user["id"] == nil {
 		return map[string]any{
-			"email":   req.Email,
-			"user_id": req.UserId,
+			"email":   email,
+			"user_id": userId,
 		}, fmt.Errorf("user not found")
 	}
 
-	token, err := adp.generateToken(ctx, req.Email)
+	token, err := adp.generateToken(ctx, email)
 	if err != nil {
 		return nil, err
 	}

@@ -39,7 +39,7 @@ func (adp *LocalAdapter) GenerateLoginURL() string {
 	return "/api/v1/auth/local/callback"
 }
 
-func (adp *LocalAdapter) Verify(ctx *gin.Context) (map[string]any, error) {
+func (adp *LocalAdapter) Verify(ctx *gin.Context, email, userId string) (map[string]any, error) {
 	return map[string]any{"status": "success"}, nil
 }
 

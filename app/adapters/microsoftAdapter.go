@@ -39,23 +39,18 @@ func (adp *MicrosoftAdapter) GenerateLoginURL() string {
 	return url
 }
 
-func (adp *MicrosoftAdapter) Verify(ctx *gin.Context) (map[string]any, error) {
-	var req interfaces.OAuthData
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		return nil, err
-	}
-
+func (adp *MicrosoftAdapter) Verify(ctx *gin.Context, email, userId string) (map[string]any, error) {
 	var user map[string]any
-	utils.DB.Table("users").Where("email = ?", req.Email).Where("microsoft_id = ?", req.UserId).Take(&user)
+	utils.DB.Table("users").Where("email = ?", email).Where("microsoft_id = ?", userId).Take(&user)
 
 	if user["id"] == nil {
 		return map[string]any{
-			"email":   req.Email,
-			"user_id": req.UserId,
+			"email":   email,
+			"user_id": userId,
 		}, fmt.Errorf("user not found")
 	}
 
-	token, err := adp.generateToken(ctx, req.Email)
+	token, err := adp.generateToken(ctx, email)
 	if err != nil {
 		return nil, err
 	}

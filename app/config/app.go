@@ -42,7 +42,8 @@ type Config struct {
 	MicrosoftAuthRedirectUrl  string `mapstructure:"MICROSOFT_AUTH_REDIRECT_URL"`
 	MicrosoftAuthTenantId     string `mapstructure:"MICROSOFT_AUTH_TENANT_ID"`
 
-	SettingPath string `mapstructure:"SETTING_PATH"`
+	SettingPath        string `mapstructure:"SETTING_PATH"`
+	FirebaseConfigPath string `mapstructure:"FIREBASE_CONFIG_PATH"`
 }
 
 var Data Config

@@ -1,8 +1,11 @@
 package controllers
 
 import (
+	firebase "firebase.google.com/go/v4"
 	"fmt"
+	"github.com/62teknologi/62dolphin/app/tokens"
 	dutils "github.com/62teknologi/62dolphin/app/utils"
+	"google.golang.org/api/option"
 	"net/http"
 	"strings"
 	"time"
@@ -40,7 +43,24 @@ func Callback(ctx *gin.Context) {
 	adapter.Callback(ctx)
 }
 
+type OAuthToken struct {
+	AccessToken string `json:"access_token"`
+}
+
 func Verify(ctx *gin.Context) {
+	var req OAuthToken
+
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", err.Error(), nil))
+		return
+	}
+
+	tokenMaker, err := tokens.NewJWTMaker(config.Data.TokenSymmetricKey)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", err.Error(), nil))
+		return
+	}
+
 	adapterName := ctx.Param("adapter")
 
 	adapter, err := adapters.GetAdapter(adapterName)
@@ -50,24 +70,62 @@ func Verify(ctx *gin.Context) {
 
 	adapter = adapter.Init()
 
-	token, err := adapter.Verify(ctx)
+	// Initialize the Firebase app.
+	opt := option.WithCredentialsFile(config.Data.FirebaseConfigPath)
+	app, err := firebase.NewApp(ctx, nil, opt)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", err.Error(), nil))
+		return
+	}
+
+	// Obtain a client for the Firebase Auth service.
+	authClient, err := app.Auth(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", err.Error(), nil))
+		return
+	}
+
+	firebaseProfile, err := authClient.VerifyIDToken(ctx, req.AccessToken)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", err.Error(), nil))
+		return
+	}
+
+	token, err := adapter.Verify(ctx, firebaseProfile.Claims["email"].(string), firebaseProfile.Claims["user_id"].(string))
 	if err != nil {
 		if err.Error() == "user not found" {
 			//
 			if err := utils.DB.Table("users").Create(&map[string]any{
-				"email":             token["email"],
-				adapterName + "_id": token["user_id"],
+				"email":             firebaseProfile.Claims["email"],
+				adapterName + "_id": firebaseProfile.Claims["user_id"],
 				"password":          "$2a$10$P9wjSPl0lcrJzSQucqi8OOdrjNVj.jgAFn7vYf6gcpoXwfRgXVHRG",
 				"created_at":        time.Now(),
 			}).Error; err != nil {
 				if duplicateError := utils.DuplicateError(err); duplicateError != nil {
+					authorizationHeader := ctx.GetHeader("authorization")
+					fields := strings.Fields(authorizationHeader)
+					var accessToken string
+					if len(fields) > 1 {
+						accessToken = fields[1]
+					}
+
+					if accessToken == "" {
+						ctx.JSON(http.StatusUnauthorized, utils.ResponseData("error", "linking account need authorized user", nil))
+						return
+					}
+
+					payload, _ := tokenMaker.VerifyToken(accessToken)
+
+					var user map[string]any
+					utils.DB.Table("users").Where("id = ?", payload.UserId).Take(&user)
+
 					updatedOtp := utils.DB.Table("users").
-						Where("email = ?", token["email"]).Updates(map[string]any{
-						adapterName + "_id": token["user_id"],
+						Where("email = ?", user["email"]).Updates(map[string]any{
+						adapterName + "_id": firebaseProfile.Claims["user_id"],
 					})
 					if updatedOtp.Error != nil {
 						if duplicateError := utils.DuplicateError(updatedOtp.Error); duplicateError != nil {
-							ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", "user id "+token["user_id"].(string)+" already linked to another account", nil))
+							ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", "user id "+firebaseProfile.Claims["user_id"].(string)+" already linked to another account", nil))
 							return
 						}
 						ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", updatedOtp.Error.Error(), nil))
@@ -83,10 +141,11 @@ func Verify(ctx *gin.Context) {
 			}
 
 			var user map[string]any
-			utils.DB.Table("users").Where(adapterName+"_id = ?", token["user_id"]).Take(&user)
-			token["id"] = user["id"]
+			utils.DB.Table("users").Where(adapterName+"_id = ?", firebaseProfile.Claims["user_id"]).Take(&user)
 
-			ctx.JSON(http.StatusOK, utils.ResponseData("success", fmt.Sprintf("success create and linking %s account", adapterName), token))
+			ctx.JSON(http.StatusOK, utils.ResponseData("success", fmt.Sprintf("success create and linking %s account", adapterName), map[string]any{
+				"id": user["id"],
+			}))
 			return
 		}
 
