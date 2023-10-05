@@ -181,12 +181,23 @@ func (adp *GoogleAdapter) generateToken(ctx *gin.Context, email string) (map[str
 		ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", fmt.Sprintf("%v", err.Error()), nil))
 	}
 
-	return map[string]any{
+	defaultResponse := map[string]any{
 		"session_id":               params["id"],
 		"access_token":             accessToken,
 		"access_token_expires_at":  accessPayload.ExpiredAt,
 		"refresh_token":            refreshToken,
 		"refresh_token_expires_at": refreshPayload.ExpiredAt,
 		"platform_id":              params["platform_id"],
-	}, nil
+	}
+
+	customResponse, err := utils.JsonFileParser(config.Data.SettingPath + "/transformers/response/auth/login.json")
+	customUser := customResponse["user"]
+
+	utils.MapValuesShifter(customResponse, defaultResponse)
+
+	if customUser != nil {
+		utils.MapValuesShifter(customUser.(map[string]any), user)
+	}
+
+	return customResponse, nil
 }
