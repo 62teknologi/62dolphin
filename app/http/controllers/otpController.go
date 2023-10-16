@@ -39,6 +39,9 @@ func CreateOTP(ctx *gin.Context) { // Setup request body
 		"created_at": time.Now(),
 		"updated_at": time.Now()}
 
+	hashedOtp, _ := dutils.HashPassword(otpCode)
+	otpParams["code"] = hashedOtp
+
 	var existingOtp map[string]any
 	utils.DB.Table("otps").Where("receiver = ?", otpParams["receiver"]).Take(&existingOtp)
 

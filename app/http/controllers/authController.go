@@ -185,6 +185,10 @@ func ForgotPassword(ctx *gin.Context) {
 		"created_at": time.Now(),
 		"updated_at": time.Now(),
 	}
+
+	hashedOtp, _ := dutils.HashPassword(otpCode)
+	otpParams["code"] = hashedOtp
+
 	createOtp := utils.DB.Table("otps").Create(otpParams)
 	if createOtp.Error != nil {
 		ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", createOtp.Error.Error(), nil))

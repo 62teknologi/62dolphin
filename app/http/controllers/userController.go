@@ -113,6 +113,9 @@ func CreateUser(ctx *gin.Context) {
 			"updated_at": time.Now(),
 		}
 
+		hashedOtp, _ := dutils.HashPassword(otpCode)
+		otpParams["code"] = hashedOtp
+
 		createOtp := utils.DB.Table("otps").Create(otpParams)
 
 		if createOtp.Error != nil {

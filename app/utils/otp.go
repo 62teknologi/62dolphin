@@ -25,12 +25,17 @@ func GenerateOTP(length int) (string, error) {
 }
 
 func VerifyOTP(result map[string]any, otpMethod string, otpReceiver string, otpCode string) error {
-	utils.DB.Table("otps").Where("type = ?", otpMethod).Where("receiver = ?", otpReceiver).Where("code = ?", otpCode).Take(&result)
+	utils.DB.Table("otps").Where("type = ?", otpMethod).Where("receiver = ?", otpReceiver).Order("id desc").Take(&result)
 
 	if result["id"] == nil {
 		return fmt.Errorf("invalid otp")
 	} else if result["expires_at"].(time.Time).Unix() < time.Now().Unix() {
 		return fmt.Errorf("expired otp")
+	}
+
+	err := CheckPassword(otpCode, result["code"].(string))
+	if err != nil {
+		return fmt.Errorf("invalid otp")
 	}
 
 	utils.DB.Table("otps").Where("id = ?", result["id"]).Updates(map[string]any{
