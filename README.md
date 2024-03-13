@@ -3,41 +3,72 @@
 
   Created by 62teknologi.com, perfected by Community.
 
-## Catalog
-This introduction will help You explain the concept and characteristic of catalog.
+<details>
+<summary><b>View table of contents</b></summary>
+
+- [authentication](#authenticaction)
+  - [concept](#concept)
+    - [Authentication Information](#authentication-information)
+    - [Authentication Behaviours](#authentication-ehaviors)
+    - [Authentication Associations](#authentication-associations)
+  - [Running 62dolphin](#running-62dolphin)
+    - [Prerequisites](#prerequisites)
+    - [Installation manual](#installation-manual)
+  - [API Endpoints](#api-endpoints)
+- [Why you should use this payment proxy?](#why-you-should-use-this-payment-proxy)
+- [Current Limitations](#current-limitations)
+- [Implemented Channels](#implemented-channels)
+- [Getting Started](#getting-started)
+  - [Payment Gateway Registration](#payment-gateway-registration)
+    - [Midtrans](#midtrans)
+    - [Xendit](#xendit)
+    - [Midtrans VS Xendit Onboarding](#midtrans-vs-xendit-onboarding)
+  - [Payment Gateway Callback](#payment-gateway-callback)
+    - [Midtrans](#midtrans-1)
+    - [Xendit](#xendit-1)
+  - [Application Secret](#application-secret)
+    - [Database](#database)
+    - [Midtrans Credential](#midtrans-credential)
+    - [Xendit Credential](#xendit-credential)
+  - [Configuration File](#configuration-file)
+  - [Mandatory Environment Variables](#mandatory-environment-variables)
+- [Example Code](#example-code)
+- [API Usage](#api-usage)
+- [Contributing](#contributing)
+- [License](#license)
+
+</details>
+
+## Authentication
+This introduction will help You explain the concept and characteristic of Authenetication.
 
 ### Concept
+Authentication is the process of verifying the identity of a user or other entity in a system. It is done to ensure that only authorized users or entities can access resources or perform certain actions.
 
-Catalog is a collection of data, for example; products, articles, galleries.
+In the context of 62dolphin, authentication refers to the process of verifying user credentials (such as username and password) to grant access to protected resources or services. This is typically done using an authentication token, such as a Json Web Token (JWT).
 
-In the context of a 62whale, a catalog would refer to a collection of `User Defined Data` that has certain `Information`, `Behaviors`, `Associations` and `Characteristic`.
+### Authentication Information
+- User Credentials (e.g., username and password)
+- Authentication Token (e.g., JWT)
+- Token Expiration Time
+- Access Rights or Permissions
 
-You will learn how to define data on later section.
+### Authentication Behaviors
+- Can Authenticate (Log in)
+- Can Verify Authentication Token
+- Can Refresh Authentication Token
+- Can Revoke Access or Invalidate Authentication Token
 
-### Information
-- Must Have ID
-- Must Have Slug
-- Must Have Created At
-- Must Have Updated At
-- Must Have Deleted At
-
-### Behaviors
-- can be created
-- can be retrieved
-- can be updated
-- can be deleted
-
-### Associations
-- may has one category
-- may has many items
-- may has many to many groups
-- may has many comments
-- may belong to certain user 
+### Authentication Associations
+- Associated with the Authenticated User or Entity
+- Associated with the Protected Resources or Services
+- Associated with the Granted Access Rights or Permissions
 
 
-## Running 62whale
 
-Follow the instruction below to running 62whale on Your local machine.
+## Running 62dolphin
+
+Follow the instruction below to running 62dolphin on Your local machine.
 
 ### Prerequisites
 Make sure to have preinstalled this prerequisites apps before You continue to installation manual. we don't include how to install these apps below most of this prerequisites is a free apps which You can find the "How to" installation tutorial anywhere in web and different machine OS have different way to install.
@@ -106,7 +137,29 @@ The API server will start running on `http://localhost:7001`. You can now intera
 
 #### Endpoint
 ```
-GET /api/v1/catalog/:name/:id
+GET    /health                   
+POST   /api/v1/auth/sign-in      
+POST   /api/v1/auth/sign-up     
+GET    /api/v1/auth/:adapter     
+GET    /api/v1/auth/:adapter/callback 
+POST   /api/v1/auth/:adapter/callback 
+POST   /api/v1/auth/:adapter/verify 
+POST   /api/v1/otps/create       
+POST   /api/v1/tokens/create     
+POST   /api/v1/tokens/verify     
+POST   /api/v1/tokens/refresh    
+POST   /api/v1/passwords/create  
+POST   /api/v1/passwords/check   
+POST   /api/v1/passwords/forgot  
+PATCH  /api/v1/passwords/reset/:token 
+GET    /api/v1/users             
+POST   /api/v1/users             
+GET    /api/v1/users/:id         
+POST   /api/v1/users/verify      
+POST   /api/v1/tokens/block      
+POST   /api/v1/tokens/block-all  
+PUT    /api/v1/users/:id         
+DELETE /api/v1/users/:id         
 ```
 
 ### Retrieve Catalog List
