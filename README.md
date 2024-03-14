@@ -15,6 +15,10 @@
     - [Prerequisites](#prerequisites)
     - [Installation manual](#installation-manual)
   - [API Endpoints](#api-endpoints)
+-[contributing](#contributing)
+  - [Must Preserve Characteristic](#must-preserve-characteristic)
+  - [License](#license)
+- [About](#about-62)
 - [Why you should use this payment proxy?](#why-you-should-use-this-payment-proxy)
 - [Current Limitations](#current-limitations)
 - [Implemented Channels](#implemented-channels)
@@ -133,8 +137,6 @@ The API server will start running on `http://localhost:7001`. You can now intera
 
 ## API Endpoints
 
-### Retrieve Catalog by id
-
 #### Endpoint
 ```
 GET    /health                   
@@ -162,79 +164,7 @@ PUT    /api/v1/users/:id
 DELETE /api/v1/users/:id         
 ```
 
-### Retrieve Catalog List
-
-#### Endpoint
-```
-GET /api/v1/catalog/:name
-```
-
-#### Parameter
-| Name | Def | Description |
-| - | - | - |
-| page | 1 | return response in pagination format, eg: ```page=1``` will return first page of the response    |
-| per_page | 30 | set how many data per pagination response |
-| search | null | filter response by string |
-| order | 1 | order data by one or multiple field, eg: ```order=name+asc``` or ```order[]=name+asc&order[]=created_at+desc```    |
-| :field | null | filter specific column You want, eg: if Your catalog have ```user_id``` field then You can add ```user_id=1``` to params for searching all catalog where user_id is 1. it support multi value by sending ```user_id[]``` instead ```user_id``` |
-
-### Create Catalog
-
-#### Endpoint
-```
-POST /api/v1/catalog/:name
-```
-
-#### Parameter
-| Name | Def | Description |
-| - | - | - |
-| :field | null | field You want to insert |
-| groups[] | null | lorem |
-| items[] | null | lorem |
-
-
-### Update Catalog
-
-#### Endpoint
-```
-PUT /api/v1/catalog/:name/:id
-```
-
-#### Parameter
-| Name | Def | Description |
-| - | - | - |
-| :field | null | field You want to insert |
-| groups[] | null | lorem |
-
-### Delete Catalog
-
-#### Endpoint
-```
-DEL /api/v1/catalog/:name/:id
-```
-# Set Up a Catalog
-- WIP   
-
-## Generate Catalog
-- WIP
-
-## Set Information
-- WIP
-
-## Set Validation
-- WIP
-
-## Set Associations
-- WIP
-
-## Set Filterable
-- WIP
-
-## Set Summary
-- WIP
-
-## Set Operation
-- WIP
+You can check all endpoint on [docs](/docs/62Dolphin-microservice.postman_collection.json)
 
 # Contributing
 
