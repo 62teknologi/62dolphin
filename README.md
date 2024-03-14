@@ -18,7 +18,7 @@
 - [Response Config](#response-config)
   - [Login response](#login-response)
 - [Request Validation](#request-validation)
--[contributing](#contributing)
+- [contributing](#contributing)
   - [Must Preserve Characteristic](#must-preserve-characteristic)
   - [License](#license)
 - [About](#about-62)
