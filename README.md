@@ -19,28 +19,6 @@
   - [Must Preserve Characteristic](#must-preserve-characteristic)
   - [License](#license)
 - [About](#about-62)
-- [Why you should use this payment proxy?](#why-you-should-use-this-payment-proxy)
-- [Current Limitations](#current-limitations)
-- [Implemented Channels](#implemented-channels)
-- [Getting Started](#getting-started)
-  - [Payment Gateway Registration](#payment-gateway-registration)
-    - [Midtrans](#midtrans)
-    - [Xendit](#xendit)
-    - [Midtrans VS Xendit Onboarding](#midtrans-vs-xendit-onboarding)
-  - [Payment Gateway Callback](#payment-gateway-callback)
-    - [Midtrans](#midtrans-1)
-    - [Xendit](#xendit-1)
-  - [Application Secret](#application-secret)
-    - [Database](#database)
-    - [Midtrans Credential](#midtrans-credential)
-    - [Xendit Credential](#xendit-credential)
-  - [Configuration File](#configuration-file)
-  - [Mandatory Environment Variables](#mandatory-environment-variables)
-- [Example Code](#example-code)
-- [API Usage](#api-usage)
-- [Contributing](#contributing)
-- [License](#license)
-
 </details>
 
 ## Authentication

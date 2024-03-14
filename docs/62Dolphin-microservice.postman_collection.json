@@ -12,13 +12,26 @@
 			"item": [
 				{
 					"name": "Get Users",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
 					"request": {
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{BASE_URL}}/api/v1/users",
+							"raw": "{{BASE_URL_DEV}}/api/v1/users",
 							"host": [
-								"{{BASE_URL}}"
+								"{{BASE_URL_DEV}}"
 							],
 							"path": [
 								"api",
@@ -31,17 +44,38 @@
 				},
 				{
 					"name": "Get User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
 					"request": {
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{BASE_URL}}/users/6",
+							"raw": "{{BASE_URL_DEV}}/api/v1/users/:userId",
 							"host": [
-								"{{BASE_URL}}"
+								"{{BASE_URL_DEV}}"
 							],
 							"path": [
+								"api",
+								"v1",
 								"users",
-								"6"
+								":userId"
+							],
+							"variable": [
+								{
+									"key": "userId",
+									"value": "1"
+								}
 							]
 						}
 					},
@@ -49,12 +83,25 @@
 				},
 				{
 					"name": "Create Users",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
 					"request": {
 						"method": "POST",
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"email\": \"dbs1232@gmail.com\",\n    \"password\": \"password\"\n}",
+							"raw": "{\n    \"email\": \"{{$randomEmail}}\",\n    \"password\": \"password\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -106,22 +153,25 @@
 				},
 				{
 					"name": "Update Users",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
 					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3YzUxNjZlLTVhNzQtNDE0Ny1hNGU4LWU0YmQ4YzM0YzhmYiIsInVzZXJfaWQiOjEsImlzc3VlZF9hdCI6IjIwMjMtMDItMjBUMTE6MjA6NDMuMTg0MDA1KzA3OjAwIiwiZXhwaXJlZF9hdCI6IjIwMjMtMDItMjFUMTE6MjA6NDMuMTg0MDA1KzA3OjAwIn0.Xq6sYc98EATsSrceubzHDFsxWjbj-9t1fTGt8knBJNQ",
-									"type": "string"
-								}
-							]
-						},
 						"method": "PUT",
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"email\": \"ade@gmail.com\"\n}",
+							"raw": "{\n    \"email\": \"{{$randomEmail}}\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -129,15 +179,15 @@
 							}
 						},
 						"url": {
-							"raw": "{{BASE_URL}}/api/v1/users/1",
+							"raw": "{{BASE_URL_DEV}}/api/v1/users/100",
 							"host": [
-								"{{BASE_URL}}"
+								"{{BASE_URL_DEV}}"
 							],
 							"path": [
 								"api",
 								"v1",
 								"users",
-								"1"
+								"100"
 							]
 						}
 					},
@@ -150,12 +200,23 @@
 			"item": [
 				{
 					"name": "Sign Up",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
 					"request": {
 						"method": "POST",
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"otp_method\":\"email\",\n    \"otp_receiver\":\"dbs@gmail.com\",\n    \"status_field\":\"is_active\",\n    \"name\": \"Dimas Bagus Susilo\",\n    \"email\": \"dbs@gmail.com\",\n    \"username\": \"dbs\",\n    \"password\": \"password\"\n}",
+							"raw": "{\n    \"otp_method\":\"email\",\n    \"otp_receiver\":\"dbs@gmail.com\",\n    \"status_field\":\"is_active\",\n    \"name\": \"{{$randomFullName}}\",\n    \"email\": \"dbs@gmail.com\",\n    \"username\": \"{{$randomUserName}}\",\n    \"password\": \"password\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -191,7 +252,10 @@
 									"",
 									"if (jsonData && jsonData.data.hasOwnProperty('refresh_token')) {",
 									"    pm.collectionVariables.set('REFRESH_TOKEN', jsonData.data.refresh_token);",
-									"}"
+									"}",
+									"",
+									"",
+									"pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));"
 								],
 								"type": "text/javascript"
 							}
@@ -231,12 +295,35 @@
 			"item": [
 				{
 					"name": "Create",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+									"",
+									"const jsonData = JSON.parse(responseBody);",
+									"console.info(jsonData)",
+									"",
+									"pm.test(\"Body matches access_token\", function () {",
+									"    pm.expect(pm.response.text()).to.include(\"access_token\");",
+									"});",
+									"",
+									"pm.test(\"Body matches refresh_token\", function () {",
+									"    pm.expect(pm.response.text()).to.include(\"refresh_token\");",
+									"});",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
 					"request": {
 						"method": "POST",
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"user_id\": 111\n}",
+							"raw": "{\n    \"user_id\": 1\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -244,9 +331,9 @@
 							}
 						},
 						"url": {
-							"raw": "{{BASE_URL}}/api/v1/tokens/create",
+							"raw": "{{BASE_URL_DEV}}/api/v1/tokens/create",
 							"host": [
-								"{{BASE_URL}}"
+								"{{BASE_URL_DEV}}"
 							],
 							"path": [
 								"api",
@@ -260,12 +347,23 @@
 				},
 				{
 					"name": "Verify",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
 					"request": {
 						"method": "POST",
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"access_token\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Ijg5YmFkNmNjLWQwZDMtNGVmZC05ZTAyLWRlOGJjODMzODM0MSIsInVzZXJfaWQiOjExMSwiaXNzdWVkX2F0IjoiMjAyMy0wNi0yMlQwNDoxMDozMy45MDEwMDQ3NDFaIiwiZXhwaXJlZF9hdCI6IjIwMjMtMDYtMjNUMDQ6MTA6MzMuOTAxMDA0OTEyWiJ9.0Mj2HhrHSshPOFEOpaPgfL6_0X8k_CuEQ90SgjvvOB4\"\n}",
+							"raw": "{\n    \"access_token\":\"{{ACCESS_TOKEN}}\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -297,7 +395,9 @@
 									"const jsonData = JSON.parse(responseBody);",
 									"if (jsonData && jsonData.data.hasOwnProperty('access_token')) {",
 									"    pm.collectionVariables.set('ACCESS_TOKEN', jsonData.data.access_token);",
-									"}"
+									"}",
+									"",
+									"pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));"
 								],
 								"type": "text/javascript"
 							}
@@ -332,6 +432,17 @@
 				},
 				{
 					"name": "Block Token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
 					"request": {
 						"auth": {
 							"type": "bearer",
@@ -347,7 +458,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"refresh_token\":\"{{REFRESH_TOKEN}}\"\n}",
+							"raw": "{\n    \"refresh_token\": \"{{REFRESH_TOKEN}}\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -371,17 +482,18 @@
 				},
 				{
 					"name": "Block All Token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
 					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{ACCESS_TOKEN}}",
-									"type": "string"
-								}
-							]
-						},
 						"method": "POST",
 						"header": [],
 						"url": {
@@ -406,6 +518,17 @@
 			"item": [
 				{
 					"name": "Create Hash Password",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
 					"request": {
 						"method": "POST",
 						"header": [],
@@ -435,12 +558,23 @@
 				},
 				{
 					"name": "Check Password",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
 					"request": {
 						"method": "POST",
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"password\":\"passwords\",\n    \"hashed_password\": \"$2a$10$MD.6kKDB5WU6RlcCM7xluebk5pjQiHiDtso0AgljsfxEAgW6r2G.G\"\n}",
+							"raw": "{\n    \"password\":\"password\",\n    \"hashed_password\": \"$2a$10$MD.6kKDB5WU6RlcCM7xluebk5pjQiHiDtso0AgljsfxEAgW6r2G.G\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -464,12 +598,29 @@
 				},
 				{
 					"name": "Forgot Password",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+									"",
+									"jsonData = JSON.parse (responseBody)",
+									"// console.info(jsonData)",
+									"",
+									"pm.collectionVariables.set(\"RESET_TOKEN\", jsonData.data.reset_token)",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
 					"request": {
 						"method": "POST",
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"method\":\"email\",\n    \"receiver\": \"admin@ambpi.com\"\n}",
+							"raw": "{\n    \"method\":\"email\",\n    \"receiver\": \"admin@admin.com\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -493,6 +644,18 @@
 				},
 				{
 					"name": "Reset Password",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
 					"request": {
 						"method": "PATCH",
 						"header": [],
@@ -520,7 +683,7 @@
 							"variable": [
 								{
 									"key": "token",
-									"value": "ZW1haWwjMDc1MzEyMDAjQ2xpZnRvbl9TYXR0ZXJmaWVsZEBleGFtcGxlLmNvbQ=="
+									"value": "{{RESET_TOKEN}}"
 								}
 							]
 						}
@@ -534,12 +697,24 @@
 			"item": [
 				{
 					"name": "Create OTP",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
 					"request": {
 						"method": "POST",
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"otp_length\":6,\n    \"otp_expired_minutes\":35,\n    \"method\": \"email\",\n    \"receiver\": \"dimasbagussusilo@gmail.com\"\n}",
+							"raw": "{\n    \"otp_length\":6,\n    \"otp_expired_minutes\":35,\n    \"method\": \"email\",\n    \"receiver\": \"admin@admin.com\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -565,6 +740,18 @@
 		},
 		{
 			"name": "health",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
 			"protocolProfileBehavior": {
 				"disableBodyPruning": true
 			},
@@ -593,6 +780,16 @@
 			"response": []
 		}
 	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{ACCESS_TOKEN}}",
+				"type": "string"
+			}
+		]
+	},
 	"event": [
 		{
 			"listen": "prerequest",
@@ -626,6 +823,11 @@
 		},
 		{
 			"key": "REFRESH_TOKEN",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "RESET_TOKEN",
 			"value": "",
 			"type": "string"
 		}
