@@ -144,6 +144,40 @@ DELETE /api/v1/users/:id
 
 You can check all endpoint on [docs](/docs/62Dolphin-microservice.postman_collection.json)
 
+## Response config
+you can edit your response config for your application needing, like login response just show id, email, name.
+
+### Login response
+you can check json configuratin [here](/setting/transformers/response/auth/login.json). base on this json. you can custom your user reponse in user object
+example
+```
+{
+  "session_id": "",
+  "access_token": "",
+  "access_token_expires_at": "",
+  "refresh_token": "",
+  "refresh_token_expires_at": "",
+  "platform_id": "",
+  "user": {
+    "id": 0,
+    "email": ""
+  }
+}
+```
+
+## Request Validation
+in this section you can also custom your request, ex for login request. you can check [request validadtion example](/setting/transformers/request/auth/login.json).
+in this example we make email and password required
+```
+{
+  "auth_field": "email|username",
+  "email": "required|email",
+  "username": "",
+  "password": "required",
+  "platform_id": 0
+}
+```
+
 # Contributing
 
 If You'd like to contribute to the development of the 62whale REST API, please follow these steps:
