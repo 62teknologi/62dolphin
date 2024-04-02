@@ -7,3 +7,5 @@ main
 .vscode
 62dolphin*
 /binary
+test_suite_analysis
+.vscode
