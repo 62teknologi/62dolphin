@@ -67,6 +67,8 @@ func main() {
 
 	authorizedV1 := r.Group("/api/v1").Use(middlewares.AuthMiddleware(tokenMaker))
 	{
+		authorizedV1.POST("/tokens/revoke", controllers.RevokeAccessToken)
+		authorizedV1.POST("/tokens/revoke-all", controllers.RevokeAllAccessToken)
 		authorizedV1.POST("/tokens/block", controllers.BlockRefreshToken)
 		authorizedV1.POST("/tokens/block-all", controllers.BlockAllRefreshToken)
 		authorizedV1.PUT("/users/:id", controllers.UpdateUser)
