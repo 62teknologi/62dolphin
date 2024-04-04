@@ -7,6 +7,8 @@
   "platform_id": "",
   "user": {
     "id": 0,
-    "email": ""
+    "email": "",
+    "name": "",
+    "is_active": ""
   }
 }

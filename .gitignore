@@ -9,3 +9,4 @@ main
 /binary
 test_suite_analysis
 .vscode
+__debug*

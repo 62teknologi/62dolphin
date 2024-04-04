@@ -3,5 +3,8 @@
   "email": "required|email",
   "username": "",
   "password": "required",
-  "platform_id": 0
+  "platform_id": 0,
+  "custom_query":{
+    "is_active": "true"
+  }
 }

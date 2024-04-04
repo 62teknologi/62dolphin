@@ -3,11 +3,12 @@ package adapters
 import (
 	"errors"
 	"fmt"
-	"gorm.io/gorm"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
+
+	"gorm.io/gorm"
 
 	"github.com/62teknologi/62dolphin/62golib/utils"
 	"github.com/62teknologi/62dolphin/app/config"
@@ -49,6 +50,9 @@ func (adp *LocalAdapter) Callback(ctx *gin.Context) error {
 
 	authField := transformer["auth_field"]
 	delete(transformer, "auth_field")
+
+	// customQuery := transformer["custom_query"]
+	// delete(transformer, "custom_query")
 
 	if validation, err := utils.Validate(input, transformer); err {
 		utils.LogJson(validation.Errors)
@@ -139,26 +143,71 @@ func (adp *LocalAdapter) getProfile(ctx *gin.Context) (map[string]any, error) {
 	input := ctx.MustGet("input").(map[string]any)
 	authField := ctx.MustGet("auth_field").(string)
 
+	var query *gorm.DB
+	query = utils.DB.Table("users")
+
 	if strings.Contains(authField, "|") {
 		substrings := strings.Split(authField, "|")
-		var query *gorm.DB
-		for i, substring := range substrings {
-			if i == 0 {
-				query = utils.DB.Table("users").Where(utils.DB.Where(fmt.Sprintf("%s = ?", substring), transformer[substring]))
-				continue
-			}
+		var conditions []string
+		var values []interface{}
 
-			query = query.Or(utils.DB.Where(fmt.Sprintf("%s = ?", substring), transformer[substring])).Take(&transformer)
+		for _, substring := range substrings {
+			if value, ok := transformer[substring]; ok {
+				conditions = append(conditions, fmt.Sprintf("%s = ?", substring))
+				values = append(values, value)
+			}
 		}
 
-		query.Take(&transformer)
+		// membuat group condition WHERE (email = 'implementer@email.com' OR username = 'username')
+		if len(conditions) > 0 {
+			rawQuery := strings.Join(conditions, " OR ")
+			query = query.Where(rawQuery, values...)
+
+		}
 	} else {
-		utils.DB.Table("users").Where(utils.DB.Where(fmt.Sprintf("%s = ?", authField), transformer[authField])).Take(&transformer)
+		query = query.Where(utils.DB.Where(fmt.Sprintf("%s = ?", authField), transformer[authField]))
 	}
+
+	// Menambahkan custom_query dengan berbagai field
+	if customQuery, ok := transformer["custom_query"].(map[string]any); ok {
+		for field, value := range customQuery {
+			var convertedValue any
+			switch v := value.(type) {
+			case string:
+				loweredValue := strings.ToLower(v)
+				if loweredValue == "true" || loweredValue == "1" {
+					convertedValue = true
+				} else if loweredValue == "false" || loweredValue == "0" {
+					convertedValue = false
+				} else {
+					convertedValue = v
+				}
+			case int:
+				if v == 1 {
+					convertedValue = true
+				} else if v == 0 {
+					convertedValue = false
+				} else {
+					convertedValue = v
+				}
+			case bool:
+				convertedValue = v
+			default:
+				convertedValue = v
+			}
+			query = query.Where(fmt.Sprintf("%s = ?", field), convertedValue)
+		}
+	}
+
+	// is user not deleted_at
+	query = query.Where("deleted_at IS NULL")
+	query.Take(&transformer)
 
 	if transformer["id"] == nil {
 		return transformer, fmt.Errorf("invalid %s or password", authField)
-	} else if err := dutils.CheckPassword(input["password"].(string), transformer["password"].(string)); err != nil {
+	}
+
+	if err := dutils.CheckPassword(input["password"].(string), transformer["password"].(string)); err != nil {
 		return transformer, fmt.Errorf("invalid %s or password", authField)
 	}
 
