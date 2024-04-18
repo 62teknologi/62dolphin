@@ -204,7 +204,7 @@ func (adp *LocalAdapter) getProfile(ctx *gin.Context) (map[string]any, error) {
 	query.Take(&transformer)
 
 	if transformer["id"] == nil {
-		return transformer, fmt.Errorf("user is not registered on inactive", authField)
+		return transformer, fmt.Errorf("user is not registered or inactive")
 	}
 
 	if err := dutils.CheckPassword(input["password"].(string), transformer["password"].(string)); err != nil {
