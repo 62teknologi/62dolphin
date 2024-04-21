@@ -245,7 +245,7 @@ func BlockAllRefreshToken(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, utils.ResponseData("success", "blocking token successfully", nil))
 }
 
-func RevokeAccessToken(ctx *gin.Context) {
+func RevokeRefreshToken(ctx *gin.Context) {
 	// Setup request body
 	var req accessTokenRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -280,7 +280,7 @@ func RevokeAccessToken(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, utils.ResponseData("success", "revoke token successfully", nil))
 }
 
-func RevokeAllAccessToken(ctx *gin.Context) {
+func RevokeAllRefreshToken(ctx *gin.Context) {
 	// Get token auth payload
 	authorizationPayload, _ := ctx.Get("authorization_payload")
 

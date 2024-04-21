@@ -433,7 +433,7 @@
 					"response": []
 				},
 				{
-					"name": "Revoke Token",
+					"name": "Revoke Refresh Token",
 					"event": [
 						{
 							"listen": "test",
@@ -479,7 +479,7 @@
 					"response": []
 				},
 				{
-					"name": "Revoke All Token",
+					"name": "Revoke All Refresh Token",
 					"event": [
 						{
 							"listen": "test",
