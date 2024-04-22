@@ -110,6 +110,7 @@ func CreateAccessToken(ctx *gin.Context) {
 }
 
 type accessTokenRequest struct {
+	AccessToken  string `json:"access_token"`
 	RefreshToken string `json:"refresh_token" binding:"required"`
 	IsAllDevice  bool   `json:"is_all_device"`
 }
@@ -300,4 +301,35 @@ func RevokeAllRefreshToken(ctx *gin.Context) {
 
 	// Send success response to client
 	ctx.JSON(http.StatusOK, utils.ResponseData("success", "successfully revoke all token", nil))
+}
+
+func RevokeAccessToken(ctx *gin.Context) {
+	// Setup request body
+	var req accessTokenRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", err.Error(), nil))
+		return
+	}
+
+	// Get token auth payload
+	authorizationPayload, _ := ctx.Get("authorization_payload")
+
+	// Update blocked token on db
+	tokenQuery := utils.DB.Table("tokens").
+		Where("user_id", authorizationPayload.(*tokens.Payload).UserId).
+		Where("access_token = ?", req.AccessToken).
+		Update("is_blocked", true)
+
+	// Handle query error
+	if tokenQuery.Error != nil {
+		if tokenQuery.Error.Error() == "record not found" {
+			ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", "token data not found", nil))
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", tokenQuery.Error.Error(), nil))
+		return
+	}
+
+	// Send success response to client
+	ctx.JSON(http.StatusOK, utils.ResponseData("success", "blocking token successfully", nil))
 }

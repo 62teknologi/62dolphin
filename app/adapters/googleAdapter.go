@@ -177,6 +177,10 @@ func (adp *GoogleAdapter) generateToken(ctx *gin.Context, email string) (map[str
 		"updated_at":    time.Now(),
 	}
 
+	if config.Data.TokenDestroy == true {
+		params["access_token"] = accessToken
+	}
+
 	if err := utils.DB.Table("tokens").Create(&params).Error; err != nil {
 		ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", fmt.Sprintf("%v", err.Error()), nil))
 	}
