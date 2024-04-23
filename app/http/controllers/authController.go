@@ -181,7 +181,7 @@ func ForgotPassword(ctx *gin.Context) {
 		"type":       "email",
 		"code":       otpCode,
 		"receiver":   input["receiver"],
-		"expires_at": time.Now().Local().Add(time.Minute * 30),
+		"expires_at": time.Now().Local().Add(config.Data.ForgotPasswordExpireDuration),
 		"created_at": time.Now(),
 		"updated_at": time.Now(),
 	}
