@@ -36,9 +36,7 @@ func Callback(ctx *gin.Context) {
 	}
 
 	adapter, err := adapters.GetAdapter(adapterName)
-	if err != nil {
-		// ctx.JSON(http.StatusBadRequest, utils.ResponseData("success", err.Error(), nil))
-	
+	if err != nil {	
 		ctx.JSON(
 			http.StatusNotFound, utils.ResponseData(
 				"error",

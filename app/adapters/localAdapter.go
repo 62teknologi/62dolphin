@@ -51,9 +51,6 @@ func (adp *LocalAdapter) Callback(ctx *gin.Context) error {
 	authField := transformer["auth_field"]
 	delete(transformer, "auth_field")
 
-	// customQuery := transformer["custom_query"]
-	// delete(transformer, "custom_query")
-
 	if validation, err := utils.Validate(input, transformer); err {
 		utils.LogJson(validation.Errors)
 		return errors.New("validation error")
@@ -158,7 +155,7 @@ func (adp *LocalAdapter) getProfile(ctx *gin.Context) (map[string]any, error) {
 			}
 		}
 
-		// membuat group condition WHERE (email = 'implementer@email.com' OR username = 'username')
+		// create condition condition WHERE (email = 'admin@email.test' OR username = 'username')
 		if len(conditions) > 0 {
 			rawQuery := strings.Join(conditions, " OR ")
 			query = query.Where(rawQuery, values...)
@@ -168,7 +165,7 @@ func (adp *LocalAdapter) getProfile(ctx *gin.Context) (map[string]any, error) {
 		query = query.Where(utils.DB.Where(fmt.Sprintf("%s = ?", authField), transformer[authField]))
 	}
 
-	// Menambahkan custom_query dengan berbagai field
+	// add custom_query for any field
 	if customQuery, ok := transformer["custom_query"].(map[string]any); ok {
 		for field, value := range customQuery {
 			var convertedValue any
