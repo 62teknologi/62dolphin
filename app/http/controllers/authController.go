@@ -1,14 +1,15 @@
 package controllers
 
 import (
-	firebase "firebase.google.com/go/v4"
 	"fmt"
-	"github.com/62teknologi/62dolphin/app/tokens"
-	dutils "github.com/62teknologi/62dolphin/app/utils"
-	"google.golang.org/api/option"
 	"net/http"
 	"strings"
 	"time"
+
+	firebase "firebase.google.com/go/v4"
+	"github.com/62teknologi/62dolphin/app/tokens"
+	dutils "github.com/62teknologi/62dolphin/app/utils"
+	"google.golang.org/api/option"
 
 	"github.com/62teknologi/62dolphin/62golib/utils"
 	"github.com/62teknologi/62dolphin/app/adapters"
@@ -36,7 +37,13 @@ func Callback(ctx *gin.Context) {
 
 	adapter, err := adapters.GetAdapter(adapterName)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, utils.ResponseData("success", err.Error(), nil))
+		ctx.JSON(
+			http.StatusNotFound, utils.ResponseData(
+				"error",
+				err.Error(),
+				nil,
+			),
+		)
 	}
 
 	adapter = adapter.Init()
