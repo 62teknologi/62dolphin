@@ -1,10 +1,11 @@
 {
 	"info": {
-		"_postman_id": "6942acb1-d208-4f98-aaa6-2e6db941e8ac",
+		"_postman_id": "f9147eca-f5c3-4238-8109-96678ca1d097",
 		"name": "62Dolphin-microservice",
 		"description": "62dolphin microservice is a REST API writter in Golang designed for authenticaction with Json Web Token  \n\nCreated by 62teknologi.com, perfected by Community.",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-		"_exporter_id": "30355459"
+		"_exporter_id": "7183159",
+		"_collection_link": "https://winter-capsule-492684.postman.co/workspace/Team-Workspace~515e2f74-a37a-48be-88d8-739d4563cff1/collection/7183159-f9147eca-f5c3-4238-8109-96678ca1d097?action=share&source=collection_link&creator=7183159"
 	},
 	"item": [
 		{
@@ -257,7 +258,8 @@
 									"",
 									"pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));"
 								],
-								"type": "text/javascript"
+								"type": "text/javascript",
+								"packages": {}
 							}
 						}
 					],
@@ -266,7 +268,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"email\": \"admin@admin.com\",\n    \"password\": \"password\",\n    \"platform_id\": 1\n}",
+							"raw": "{\n    \"email\": \"fiyuang.others@gmail.com\",\n    \"password\": \"password\",\n    \"platform_id\": 1\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -425,6 +427,84 @@
 								"v1",
 								"tokens",
 								"refresh"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Revoke Refresh Token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const jsonData = JSON.parse(responseBody);",
+									"if (jsonData && jsonData.data.hasOwnProperty('access_token')) {",
+									"    pm.collectionVariables.set('ACCESS_TOKEN', jsonData.data.access_token);",
+									"}",
+									"",
+									"pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"refresh_token\":\"{{REFRESH_TOKEN}}\",\n    \"is_all_device\": false\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{BASE_URL_DEV}}/api/v1/tokens/revoke",
+							"host": [
+								"{{BASE_URL_DEV}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"tokens",
+								"revoke"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Revoke All Refresh Token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{BASE_URL_DEV}}/api/v1/tokens/revoke-all",
+							"host": [
+								"{{BASE_URL_DEV}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"tokens",
+								"revoke-all"
 							]
 						}
 					},

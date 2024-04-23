@@ -111,6 +111,7 @@ func CreateAccessToken(ctx *gin.Context) {
 
 type accessTokenRequest struct {
 	RefreshToken string `json:"refresh_token" binding:"required"`
+	IsAllDevice  bool   `json:"is_all_device"`
 }
 
 type accessTokenResponse struct {
@@ -242,4 +243,80 @@ func BlockAllRefreshToken(ctx *gin.Context) {
 
 	// Send success response to client
 	ctx.JSON(http.StatusOK, utils.ResponseData("success", "blocking token successfully", nil))
+}
+
+func RevokeRefreshToken(ctx *gin.Context) {
+	// Setup request body
+	var req accessTokenRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", err.Error(), nil))
+		return
+	}
+
+	// Get & check refresh token data from database
+	var token map[string]any
+	getTokenQuery := utils.DB.Table("tokens").Where("refresh_token = ?", req.RefreshToken).Take(&token)
+
+	// Handle query error
+	if getTokenQuery.Error != nil {
+		if getTokenQuery.Error.Error() == "record not found" {
+			ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", "token data not found", nil))
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", getTokenQuery.Error.Error(), nil))
+		return
+	}
+
+	// Get token auth payload
+	authorizationPayload, _ := ctx.Get("authorization_payload")
+
+	// Delete access token on db
+	tokenQuery := utils.DB.Table("tokens").
+		Where("user_id", authorizationPayload.(*tokens.Payload).UserId)
+
+	if req.IsAllDevice == true {
+		tokenQuery = tokenQuery.Delete(nil)
+	} else {
+		tokenQuery = tokenQuery.Where("refresh_token = ?", req.RefreshToken).Delete(nil)
+	}
+
+	// Handle query error
+	if tokenQuery.Error != nil {
+		if tokenQuery.Error.Error() == "record not found" {
+			ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", "token data not found", nil))
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", tokenQuery.Error.Error(), nil))
+		return
+	}
+
+	// Send success response to client
+	ctx.JSON(http.StatusOK, utils.ResponseData("success", "revoke token successfully", nil))
+}
+
+func RevokeAllRefreshToken(ctx *gin.Context) {
+	// Get token auth payload
+	authorizationPayload, _ := ctx.Get("authorization_payload")
+
+	// Update blocked token on db
+	tokenQuery := utils.DB.Table("tokens").
+		Where("user_id", authorizationPayload.(*tokens.Payload).UserId).Delete(nil)
+
+	if tokenQuery.RowsAffected <= 0 {
+		ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", "token data not found", nil))
+		return
+	}
+
+	// Handle query error
+	if tokenQuery.Error != nil {
+		if tokenQuery.Error.Error() == "record not found" {
+			ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", "token data not found", nil))
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", tokenQuery.Error.Error(), nil))
+		return
+	}
+
+	// Send success response to client
+	ctx.JSON(http.StatusOK, utils.ResponseData("success", "successfully revoke all token", nil))
 }
