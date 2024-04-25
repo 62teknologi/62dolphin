@@ -23,6 +23,7 @@ type Config struct {
 	AccessTokenDuration          time.Duration `mapstructure:"ACCESS_TOKEN_DURATION"`
 	RefreshTokenDuration         time.Duration `mapstructure:"REFRESH_TOKEN_DURATION"`
 	ForgotPasswordExpireDuration time.Duration `mapstructure:"FORGOT_PASSWORD_EXPIRED_DURATION"`
+	TokenDestroy                 bool          `mapstructure:"TOKEN_DESTROY"`
 
 	EmailSMTPHost     string `mapstructure:"EMAIL_SMTP_HOST"`
 	EmailSMTPPort     int    `mapstructure:"EMAIL_SMTP_PORT"`
@@ -65,6 +66,7 @@ func LoadConfig(path string, data *Config) (config Config, err error) {
 	viper.SetDefault("ACCESS_TOKEN_DURATION", "24h")
 	viper.SetDefault("REFRESH_TOKEN_DURATION", "8760h")
 	viper.SetDefault("FORGOT_PASSWORD_EXPIRED_DURATION", "30m")
+	viper.SetDefault("TOKEN_DESTROY", false)
 
 	viper.SetDefault("EMAIL_SMTP_HOST", "sandbox.smtp.mailtrap.io")
 	viper.SetDefault("EMAIL_SMTP_PORT", "587")
