@@ -3,9 +3,11 @@ package middlewares
 import (
 	"errors"
 	"fmt"
+	"github.com/62teknologi/62dolphin/app/config"
 	"net/http"
 	"strings"
 
+	dutils "github.com/62teknologi/62dolphin/62golib/utils"
 	"github.com/62teknologi/62dolphin/app/tokens"
 	"github.com/62teknologi/62dolphin/app/utils"
 
@@ -49,6 +51,18 @@ func AuthMiddleware(tokenMaker tokens.Maker) gin.HandlerFunc {
 		}
 
 		accessToken := fields[1]
+
+		// check blocked access token
+		if config.Data.TokenDestroy == true {
+			var token map[string]any
+			dutils.DB.Table("tokens").Where("access_token = ?", accessToken).Take(&token)
+			if token["is_blocked"].(int8) == 1 {
+				err := errors.New("token unauthorized")
+				ctx.AbortWithStatusJSON(http.StatusUnauthorized, utils.ResponseData("error", err.Error(), nil))
+				return
+			}
+		}
+
 		payload, err := tokenMaker.VerifyToken(accessToken)
 
 		if err != nil {

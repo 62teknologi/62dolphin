@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/62teknologi/62dolphin/62golib/utils"
@@ -17,6 +18,11 @@ import (
 type accessTokenVerifyRequest struct {
 	AccessToken string `json:"access_token" binding:"required"`
 }
+
+const (
+	authorizationHeaderKey  = "authorization"
+	authorizationTypeBearer = "bearer"
+)
 
 func VerifyAccessToken(ctx *gin.Context) {
 	// Setup request body
@@ -111,7 +117,7 @@ func CreateAccessToken(ctx *gin.Context) {
 
 type accessTokenRequest struct {
 	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token" binding:"required"`
+	RefreshToken string `json:"refresh_token"`
 	IsAllDevice  bool   `json:"is_all_device"`
 }
 
@@ -330,14 +336,52 @@ func RevokeAccessToken(ctx *gin.Context) {
 		return
 	}
 
+	// Get access token
+	authorizationHeader := ctx.GetHeader(authorizationHeaderKey)
+	if len(authorizationHeader) == 0 {
+		err := errors.New("authorization header is not provided")
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, utils.ResponseData("error", err.Error(), nil))
+
+		return
+	}
+
+	fields := strings.Fields(authorizationHeader)
+
+	if len(fields) < 2 {
+		err := errors.New("invalid authorization header format")
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, utils.ResponseData("error", err.Error(), nil))
+
+		return
+	}
+
+	authorizationType := strings.ToLower(fields[0])
+
+	if authorizationType != authorizationTypeBearer {
+		err := fmt.Errorf("unsupported authorization type %s", authorizationType)
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, utils.ResponseData("error", err.Error(), nil))
+
+		return
+	}
+
+	accessToken := fields[1]
+
 	// Get token auth payload
 	authorizationPayload, _ := ctx.Get("authorization_payload")
 
 	// Update blocked token on db
 	tokenQuery := utils.DB.Table("tokens").
-		Where("user_id", authorizationPayload.(*tokens.Payload).UserId).
-		Where("access_token = ?", req.AccessToken).
-		Update("is_blocked", true)
+		Where("user_id", authorizationPayload.(*tokens.Payload).UserId)
+
+	if req.IsAllDevice == true {
+		tokenQuery = tokenQuery.Update("is_blocked", true)
+	} else {
+		tokenQuery = tokenQuery.Where("access_token = ?", accessToken).Update("is_blocked", true)
+	}
+
+	if tokenQuery.RowsAffected <= 0 {
+		ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", "token data not found", nil))
+		return
+	}
 
 	// Handle query error
 	if tokenQuery.Error != nil {
