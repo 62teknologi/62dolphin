@@ -254,6 +254,20 @@ func RevokeRefreshToken(ctx *gin.Context) {
 		return
 	}
 
+	// Get & check refresh token data from database
+	var token map[string]any
+	getTokenQuery := utils.DB.Table("tokens").Where("refresh_token = ?", req.RefreshToken).Take(&token)
+
+	// Handle query error
+	if getTokenQuery.Error != nil {
+		if getTokenQuery.Error.Error() == "record not found" {
+			ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", "token data not found", nil))
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", getTokenQuery.Error.Error(), nil))
+		return
+	}
+
 	// Get token auth payload
 	authorizationPayload, _ := ctx.Get("authorization_payload")
 
@@ -288,6 +302,11 @@ func RevokeAllRefreshToken(ctx *gin.Context) {
 	// Update blocked token on db
 	tokenQuery := utils.DB.Table("tokens").
 		Where("user_id", authorizationPayload.(*tokens.Payload).UserId).Delete(nil)
+
+	if tokenQuery.RowsAffected <= 0 {
+		ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", "token data not found", nil))
+		return
+	}
 
 	// Handle query error
 	if tokenQuery.Error != nil {
