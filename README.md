@@ -43,6 +43,7 @@ In the context of 62dolphin, authentication refers to the process of verifying u
 - Can Verify Authentication Token
 - Can Refresh Authentication Token
 - Can Revoke Access or Invalidate Authentication Token
+- Can Blacklist/Block Authentication Token (You need set the value of _TOKEN_DESTROY_ in environment to TRUE)
 
 ### Authentication Associations
 - Associated with the Authenticated User or Entity
