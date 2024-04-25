@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/62teknologi/62dolphin/62golib/utils"
+	dutils "github.com/62teknologi/62dolphin/62golib/utils"
 	"github.com/62teknologi/62dolphin/app/config"
 	"github.com/62teknologi/62dolphin/app/tokens"
 
@@ -37,6 +38,17 @@ func VerifyAccessToken(ctx *gin.Context) {
 	if err != nil {
 		fmt.Errorf("cannot create token maker: %w", err)
 		return
+	}
+
+	// check blocked access token
+	if config.Data.TokenDestroy == true {
+		var token map[string]any
+		dutils.DB.Table("tokens").Where("access_token = ?", req.AccessToken).Take(&token)
+		if token["is_blocked"].(int8) == 1 {
+			err := errors.New("token unauthorized")
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, utils.ResponseData("error", err.Error(), nil))
+			return
+		}
 	}
 
 	payload, err := tokenMaker.VerifyToken(req.AccessToken)
