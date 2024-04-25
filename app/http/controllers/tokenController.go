@@ -201,6 +201,22 @@ func RenewAccessToken(ctx *gin.Context) {
 		return
 	}
 
+	// update access token if TOKEN_DESTROY is true
+	if config.Data.TokenDestroy == true {
+		tokenQueryUpdate := utils.DB.Table("tokens").
+			Where("refresh_token = ?", req.RefreshToken).Update("access_token", accessToken)
+
+		if tokenQueryUpdate.RowsAffected <= 0 {
+			ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", "token data not found", nil))
+			return
+		}
+
+		if tokenQueryUpdate.Error != nil {
+			ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", tokenQuery.Error.Error(), nil))
+			return
+		}
+	}
+
 	// Setup and send response
 	rsp := accessTokenResponse{
 		AccessToken:          accessToken,
