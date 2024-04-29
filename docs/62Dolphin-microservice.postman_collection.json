@@ -590,6 +590,57 @@
 						}
 					},
 					"response": []
+				},
+				{
+					"name": "Blacklist Access Token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{ACCESS_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"is_all_device\": true\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{BASE_URL_DEV}}/api/v1/tokens/blacklist",
+							"host": [
+								"{{BASE_URL_DEV}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"tokens",
+								"blacklist"
+							]
+						}
+					},
+					"response": []
 				}
 			]
 		},

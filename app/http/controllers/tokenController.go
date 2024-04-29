@@ -4,9 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/62teknologi/62dolphin/62golib/utils"
+	dutils "github.com/62teknologi/62dolphin/62golib/utils"
 	"github.com/62teknologi/62dolphin/app/config"
 	"github.com/62teknologi/62dolphin/app/tokens"
 
@@ -17,6 +19,11 @@ import (
 type accessTokenVerifyRequest struct {
 	AccessToken string `json:"access_token" binding:"required"`
 }
+
+const (
+	authorizationHeaderKey  = "authorization"
+	authorizationTypeBearer = "bearer"
+)
 
 func VerifyAccessToken(ctx *gin.Context) {
 	// Setup request body
@@ -31,6 +38,17 @@ func VerifyAccessToken(ctx *gin.Context) {
 	if err != nil {
 		fmt.Errorf("cannot create token maker: %w", err)
 		return
+	}
+
+	// check blocked access token
+	if config.Data.TokenDestroy == true {
+		var token map[string]any
+		dutils.DB.Table("tokens").Where("access_token = ?", req.AccessToken).Take(&token)
+		if token["is_blocked"].(int8) == 1 {
+			err := errors.New("token unauthorized")
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, utils.ResponseData("error", err.Error(), nil))
+			return
+		}
 	}
 
 	payload, err := tokenMaker.VerifyToken(req.AccessToken)
@@ -110,7 +128,8 @@ func CreateAccessToken(ctx *gin.Context) {
 }
 
 type accessTokenRequest struct {
-	RefreshToken string `json:"refresh_token" binding:"required"`
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
 	IsAllDevice  bool   `json:"is_all_device"`
 }
 
@@ -180,6 +199,22 @@ func RenewAccessToken(ctx *gin.Context) {
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", err.Error(), nil))
 		return
+	}
+
+	// update access token if TOKEN_DESTROY is true
+	if config.Data.TokenDestroy == true {
+		tokenQueryUpdate := utils.DB.Table("tokens").
+			Where("refresh_token = ?", req.RefreshToken).Update("access_token", accessToken)
+
+		if tokenQueryUpdate.RowsAffected <= 0 {
+			ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", "token data not found", nil))
+			return
+		}
+
+		if tokenQueryUpdate.Error != nil {
+			ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", tokenQuery.Error.Error(), nil))
+			return
+		}
 	}
 
 	// Setup and send response
@@ -319,4 +354,73 @@ func RevokeAllRefreshToken(ctx *gin.Context) {
 
 	// Send success response to client
 	ctx.JSON(http.StatusOK, utils.ResponseData("success", "successfully revoke all token", nil))
+}
+
+func RevokeAccessToken(ctx *gin.Context) {
+	// Setup request body
+	var req accessTokenRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", err.Error(), nil))
+		return
+	}
+
+	// Get access token
+	authorizationHeader := ctx.GetHeader(authorizationHeaderKey)
+	if len(authorizationHeader) == 0 {
+		err := errors.New("authorization header is not provided")
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, utils.ResponseData("error", err.Error(), nil))
+
+		return
+	}
+
+	fields := strings.Fields(authorizationHeader)
+
+	if len(fields) < 2 {
+		err := errors.New("invalid authorization header format")
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, utils.ResponseData("error", err.Error(), nil))
+
+		return
+	}
+
+	authorizationType := strings.ToLower(fields[0])
+
+	if authorizationType != authorizationTypeBearer {
+		err := fmt.Errorf("unsupported authorization type %s", authorizationType)
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, utils.ResponseData("error", err.Error(), nil))
+
+		return
+	}
+
+	accessToken := fields[1]
+
+	// Get token auth payload
+	authorizationPayload, _ := ctx.Get("authorization_payload")
+
+	// Update blocked token on db
+	tokenQuery := utils.DB.Table("tokens").
+		Where("user_id", authorizationPayload.(*tokens.Payload).UserId)
+
+	if req.IsAllDevice == true {
+		tokenQuery = tokenQuery.Update("is_blocked", true)
+	} else {
+		tokenQuery = tokenQuery.Where("access_token = ?", accessToken).Update("is_blocked", true)
+	}
+
+	if tokenQuery.RowsAffected <= 0 {
+		ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", "token data not found", nil))
+		return
+	}
+
+	// Handle query error
+	if tokenQuery.Error != nil {
+		if tokenQuery.Error.Error() == "record not found" {
+			ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", "token data not found", nil))
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, utils.ResponseData("error", tokenQuery.Error.Error(), nil))
+		return
+	}
+
+	// Send success response to client
+	ctx.JSON(http.StatusOK, utils.ResponseData("success", "blocking token successfully", nil))
 }
