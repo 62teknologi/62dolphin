@@ -41,7 +41,7 @@ func VerifyAccessToken(ctx *gin.Context) {
 	}
 
 	// check blocked access token
-	if config.Data.TokenDestroy == true {
+	if config.Data.TokenDestroy == true || config.Data.SimultaneousSession == false {
 		var token map[string]any
 		dutils.DB.Table("tokens").Where("access_token = ?", req.AccessToken).Take(&token)
 		if token["is_blocked"].(int8) == 1 {

@@ -1,5 +1,6 @@
 {
     "username":"",
     "email":"",
-    "password": ""
+    "password": "",
+    "is_simultaneous_sessions": ""
 }
