@@ -53,7 +53,7 @@ func AuthMiddleware(tokenMaker tokens.Maker) gin.HandlerFunc {
 		accessToken := fields[1]
 
 		// check blocked access token
-		if config.Data.TokenDestroy == true {
+		if config.Data.TokenDestroy == true || config.Data.SimultaneousSession == false {
 			var token map[string]any
 			dutils.DB.Table("tokens").Where("access_token = ?", accessToken).Take(&token)
 			if token["is_blocked"].(int8) == 1 {

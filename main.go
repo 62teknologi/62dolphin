@@ -72,7 +72,7 @@ func main() {
 		authorizedV1.POST("/tokens/revoke-all", controllers.RevokeAllRefreshToken)
 		authorizedV1.POST("/tokens/block", controllers.BlockRefreshToken)
 		authorizedV1.POST("/tokens/block-all", controllers.BlockAllRefreshToken)
-		authorizedV1.PUT("/users/:id", controllers.UpdateUser)
+		authorizedV1.PUT("/users", controllers.UpdateUser)
 		authorizedV1.DELETE("/users/:id", controllers.DeleteUser)
 	}
 

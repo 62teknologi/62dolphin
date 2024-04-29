@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"fmt"
+	"github.com/62teknologi/62dolphin/app/tokens"
 	dutils "github.com/62teknologi/62dolphin/app/utils"
 	"net/http"
 	"time"
@@ -196,6 +197,9 @@ func UpdateUser(ctx *gin.Context) {
 	utils.MapValuesShifter(transformer, input)
 	utils.MapNullValuesRemover(transformer)
 
+	// Get token auth payload
+	authorizationPayload, _ := ctx.Get("authorization_payload")
+
 	// Hashing Password (if exist)
 	if input["password"] != nil {
 		hashedPassword, err := dutils.HashPassword(input["password"].(string))
@@ -208,7 +212,7 @@ func UpdateUser(ctx *gin.Context) {
 		transformer["password"] = hashedPassword
 	}
 
-	if err := utils.DB.Table("users").Where("id = ?", ctx.Param("id")).Updates(transformer).Error; err != nil {
+	if err := utils.DB.Table("users").Where("id = ?", authorizationPayload.(*tokens.Payload).UserId).Updates(transformer).Error; err != nil {
 		ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", err.Error(), nil))
 		return
 	}
