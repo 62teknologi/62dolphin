@@ -1,11 +1,11 @@
 {
 	"info": {
-		"_postman_id": "f9147eca-f5c3-4238-8109-96678ca1d097",
+		"_postman_id": "868c682e-7c18-4958-8f47-78a04a570f5f",
 		"name": "62Dolphin-microservice",
 		"description": "62dolphin microservice is a REST API writter in Golang designed for authenticaction with Json Web Token  \n\nCreated by 62teknologi.com, perfected by Community.",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
 		"_exporter_id": "7183159",
-		"_collection_link": "https://winter-capsule-492684.postman.co/workspace/Team-Workspace~515e2f74-a37a-48be-88d8-739d4563cff1/collection/7183159-f9147eca-f5c3-4238-8109-96678ca1d097?action=share&source=collection_link&creator=7183159"
+		"_collection_link": "https://winter-capsule-492684.postman.co/workspace/Team-Workspace~515e2f74-a37a-48be-88d8-739d4563cff1/collection/7183159-868c682e-7c18-4958-8f47-78a04a570f5f?action=share&source=collection_link&creator=7183159"
 	},
 	"item": [
 		{
@@ -163,16 +163,27 @@
 									"    pm.response.to.have.status(200);",
 									"});"
 								],
-								"type": "text/javascript"
+								"type": "text/javascript",
+								"packages": {}
 							}
 						}
 					],
 					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{ACCESS_TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
 						"method": "PUT",
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"email\": \"{{$randomEmail}}\"\n}",
+							"raw": "{\n    \"email\": \"{{$randomEmail}}\",\n    \"is_simultaneous_sessions\": false\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -180,15 +191,14 @@
 							}
 						},
 						"url": {
-							"raw": "{{BASE_URL_DEV}}/api/v1/users/100",
+							"raw": "{{BASE_URL_DEV}}/api/v1/users",
 							"host": [
 								"{{BASE_URL_DEV}}"
 							],
 							"path": [
 								"api",
 								"v1",
-								"users",
-								"100"
+								"users"
 							]
 						}
 					},
@@ -620,7 +630,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"is_all_device\": true\n}",
+							"raw": "{\n    \"is_all_device\": false\n}",
 							"options": {
 								"raw": {
 									"language": "json"
