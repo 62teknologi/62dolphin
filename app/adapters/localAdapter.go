@@ -78,6 +78,23 @@ func (adp *LocalAdapter) Callback(ctx *gin.Context) error {
 
 	uId, _ := strconv.ParseInt(fmt.Sprintf("%v", user["id"]), 10, 32)
 
+	// check simultaneous session, invalidate login in all platform or logout all platform
+	if user["is_simultaneous_sessions"].(int8) == 1 {
+		err = adp.simulatenousLogin(user)
+		if err != nil {
+			ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", err.Error(), nil))
+			return err
+		}
+	} else {
+		if config.Data.SimultaneousSession == false {
+			err = adp.simulatenousLogin(user)
+			if err != nil {
+				ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", err.Error(), nil))
+				return err
+			}
+		}
+	}
+
 	accessToken, accessPayload, err := tokenMaker.CreateToken(
 		int32(uId),
 		config.Data.AccessTokenDuration,
@@ -108,7 +125,7 @@ func (adp *LocalAdapter) Callback(ctx *gin.Context) error {
 		"updated_at":    time.Now(),
 	}
 
-	if config.Data.TokenDestroy == true {
+	if config.Data.TokenDestroy == true || config.Data.SimultaneousSession == false {
 		params["access_token"] = accessToken
 	}
 
@@ -135,6 +152,21 @@ func (adp *LocalAdapter) Callback(ctx *gin.Context) error {
 	}
 
 	ctx.JSON(http.StatusOK, utils.ResponseData("success", "sign-in successfully", customResponse))
+
+	return nil
+}
+
+func (adp *LocalAdapter) simulatenousLogin(user map[string]any) error {
+	tokenQuery := utils.DB.Table("tokens").
+		Where("user_id", user["id"]).Update("is_blocked", true)
+
+	// Handle query error
+	if tokenQuery.Error != nil {
+		if tokenQuery.Error.Error() == "record not found" {
+			return fmt.Errorf("token data not found")
+		}
+		return fmt.Errorf(tokenQuery.Error.Error())
+	}
 
 	return nil
 }
