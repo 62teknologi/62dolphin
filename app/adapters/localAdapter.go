@@ -79,13 +79,13 @@ func (adp *LocalAdapter) Callback(ctx *gin.Context) error {
 	uId, _ := strconv.ParseInt(fmt.Sprintf("%v", user["id"]), 10, 32)
 
 	// check simultaneous session, invalidate login in all platform or logout all platform
-	if user["is_simultaneous_sessions"].(int8) == 1 {
+	if config.Data.IndividualSimultaneousSession && user["is_simultaneous_sessions"].(int8) == 1 {
 		err = adp.simulatenousLogin(user)
 		if err != nil {
 			ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", err.Error(), nil))
 			return err
 		}
-	} else {
+	} else if config.Data.SimultaneousSession {
 		if config.Data.SimultaneousSession == false {
 			err = adp.simulatenousLogin(user)
 			if err != nil {
