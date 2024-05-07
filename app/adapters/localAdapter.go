@@ -86,14 +86,14 @@ func (adp *LocalAdapter) Callback(ctx *gin.Context) error {
 			return err
 		}
 
-		if user["is_single_session"].(int8) == 0 {
+		if user["is_single_session"].(int64) == 1 {
 			err = adp.simulatenousLogin(user)
 			if err != nil {
 				ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", err.Error(), nil))
 				return err
 			}
 		}
-	} else if config.Data.SimultaneousSession {
+	} else {
 		if config.Data.SimultaneousSession == false {
 			err = adp.simulatenousLogin(user)
 			if err != nil {
