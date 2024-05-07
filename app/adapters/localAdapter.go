@@ -79,7 +79,7 @@ func (adp *LocalAdapter) Callback(ctx *gin.Context) error {
 	uId, _ := strconv.ParseInt(fmt.Sprintf("%v", user["id"]), 10, 32)
 
 	// check simultaneous session, invalidate login in all platform or logout all platform
-	if config.Data.SingleUserSession == true {
+	if config.Data.CustomSingleUserSession == true {
 		if _, ok := user["is_single_session"]; !ok {
 			err = errors.New("'is_single_session' not found in user data")
 			ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", err.Error(), nil))
@@ -133,7 +133,7 @@ func (adp *LocalAdapter) Callback(ctx *gin.Context) error {
 		"updated_at":    time.Now(),
 	}
 
-	if config.Data.TokenDestroy == true || config.Data.SimultaneousSession == false || config.Data.SingleUserSession == true {
+	if config.Data.TokenDestroy == true || config.Data.SimultaneousSession == false || config.Data.CustomSingleUserSession == true {
 		params["access_token"] = accessToken
 	}
 

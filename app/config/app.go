@@ -25,7 +25,7 @@ type Config struct {
 	ForgotPasswordExpireDuration time.Duration `mapstructure:"FORGOT_PASSWORD_EXPIRED_DURATION"`
 	TokenDestroy                 bool          `mapstructure:"TOKEN_DESTROY"`
 	SimultaneousSession          bool          `mapstructure:"SIMULTANEOUS_SESSION"`
-	SingleUserSession            bool          `mapstructure:"SINGLE_USER_SESSION"`
+	CustomSingleUserSession      bool          `mapstructure:"CUSTOM_SINGLE_USER_SESSION"`
 
 	EmailSMTPHost     string `mapstructure:"EMAIL_SMTP_HOST"`
 	EmailSMTPPort     int    `mapstructure:"EMAIL_SMTP_PORT"`
@@ -70,7 +70,7 @@ func LoadConfig(path string, data *Config) (config Config, err error) {
 	viper.SetDefault("FORGOT_PASSWORD_EXPIRED_DURATION", "30m")
 	viper.SetDefault("TOKEN_DESTROY", false)
 	viper.SetDefault("SIMULTANEOUS_SESSION", true)
-	viper.SetDefault("SINGLE_USER_SESSION", false)
+	viper.SetDefault("CUSTOM_SINGLE_USER_SESSION", false)
 
 	viper.SetDefault("EMAIL_SMTP_HOST", "sandbox.smtp.mailtrap.io")
 	viper.SetDefault("EMAIL_SMTP_PORT", "587")
