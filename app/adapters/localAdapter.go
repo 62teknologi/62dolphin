@@ -79,11 +79,19 @@ func (adp *LocalAdapter) Callback(ctx *gin.Context) error {
 	uId, _ := strconv.ParseInt(fmt.Sprintf("%v", user["id"]), 10, 32)
 
 	// check simultaneous session, invalidate login in all platform or logout all platform
-	if config.Data.IndividualSimultaneousSession && user["is_simultaneous_sessions"].(int8) == 1 {
-		err = adp.simulatenousLogin(user)
-		if err != nil {
+	if config.Data.SingleUserSession == true {
+		if _, ok := user["is_single_session"]; !ok {
+			err = errors.New("'is_single_session' not found in user data")
 			ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", err.Error(), nil))
 			return err
+		}
+
+		if user["is_single_session"].(int8) == 0 {
+			err = adp.simulatenousLogin(user)
+			if err != nil {
+				ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", err.Error(), nil))
+				return err
+			}
 		}
 	} else if config.Data.SimultaneousSession {
 		if config.Data.SimultaneousSession == false {
@@ -125,7 +133,7 @@ func (adp *LocalAdapter) Callback(ctx *gin.Context) error {
 		"updated_at":    time.Now(),
 	}
 
-	if config.Data.TokenDestroy == true || config.Data.SimultaneousSession == false {
+	if config.Data.TokenDestroy == true || config.Data.SimultaneousSession == false || config.Data.SingleUserSession == true {
 		params["access_token"] = accessToken
 	}
 

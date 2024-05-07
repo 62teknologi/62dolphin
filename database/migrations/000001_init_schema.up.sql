@@ -5,8 +5,8 @@ CREATE TABLE IF NOT EXISTS users
     name       VARCHAR(125),
     username   VARCHAR(30) UNIQUE,
     password   VARCHAR(2048) NOT NULL,
-    is_active  BOOLEAN       NOT NULL DEFAULT TRUE,
-    is_simultaneous_sessions  BOOLEAN       NOT NULL DEFAULT TRUE,
+    is_active           BOOLEAN       NOT NULL DEFAULT TRUE,
+    is_single_session   BOOLEAN       NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP
