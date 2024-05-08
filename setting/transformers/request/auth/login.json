@@ -4,6 +4,7 @@
   "username": "",
   "password": "required",
   "platform_id": 0,
+  "remember_me": "",
   "custom_query":{
     "is_active": "true"
   }

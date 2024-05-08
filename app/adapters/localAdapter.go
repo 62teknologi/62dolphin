@@ -103,9 +103,19 @@ func (adp *LocalAdapter) Callback(ctx *gin.Context) error {
 		}
 	}
 
+	var accessTokenDuration time.Duration
+	var refreshTokenDuration time.Duration
+	if transformer["remember_me"] == true {
+		accessTokenDuration = config.Data.RememberMeExpiredDuration
+		refreshTokenDuration = config.Data.RememberMeExpiredDuration
+	} else {
+		accessTokenDuration = config.Data.AccessTokenDuration
+		refreshTokenDuration = config.Data.RefreshTokenDuration
+	}
+
 	accessToken, accessPayload, err := tokenMaker.CreateToken(
 		int32(uId),
-		config.Data.AccessTokenDuration,
+		accessTokenDuration,
 	)
 
 	if err != nil {
@@ -114,7 +124,7 @@ func (adp *LocalAdapter) Callback(ctx *gin.Context) error {
 
 	refreshToken, refreshPayload, err := tokenMaker.CreateToken(
 		int32(uId),
-		config.Data.RefreshTokenDuration,
+		refreshTokenDuration,
 	)
 
 	if err != nil {
