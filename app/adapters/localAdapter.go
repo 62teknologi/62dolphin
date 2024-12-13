@@ -86,7 +86,7 @@ func (adp *LocalAdapter) Callback(ctx *gin.Context) error {
 			return err
 		}
 
-		if user["is_single_session"].(int64) == 1 {
+		if user["is_single_session"].(int8) == 1 {
 			err = adp.simulatenousLogin(user)
 			if err != nil {
 				ctx.JSON(http.StatusBadRequest, utils.ResponseData("error", err.Error(), nil))

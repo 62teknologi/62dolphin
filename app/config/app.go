@@ -47,6 +47,10 @@ type Config struct {
 	MicrosoftAuthRedirectUrl  string `mapstructure:"MICROSOFT_AUTH_REDIRECT_URL"`
 	MicrosoftAuthTenantId     string `mapstructure:"MICROSOFT_AUTH_TENANT_ID"`
 
+	AppleClientID     string `mapstructure:"APPLE_AUTH_CLIENT_ID"`
+	AppleClientSecret string `mapstructure:"APPLE_AUTH_CLIENT_SECRET"`
+	AppleRedirectURL  string `mapstructure:"APPLE_AUTH_REDIRECT_URL"`
+
 	SettingPath        string `mapstructure:"SETTING_PATH"`
 	FirebaseConfigPath string `mapstructure:"FIREBASE_CONFIG_PATH"`
 }
@@ -94,6 +98,10 @@ func LoadConfig(path string, data *Config) (config Config, err error) {
 	viper.SetDefault("MicrosoftAuthTenantId", "1234abcd!@#$1234")
 
 	viper.SetDefault("SETTING_PATH", "setting")
+
+	viper.SetDefault("AppleClientID", "1234abcd!@#$1234")
+	viper.SetDefault("AppleClientSecret", "1234abcd!@#$1234")
+	viper.SetDefault("AppleRedirectURL", "https://dolphin.com/auth/callback/apple")
 
 	viper.AutomaticEnv()
 

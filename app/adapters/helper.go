@@ -17,6 +17,8 @@ func GetAdapter(name string) (interfaces.AuthInterface, error) {
 		adapter = &MicrosoftAdapter{}
 	case "local":
 		adapter = &LocalAdapter{}
+	case "apple":
+		adapter = &AppleAdapter{}
 	default:
 		return nil, fmt.Errorf("adapter %s not found", name)
 	}
